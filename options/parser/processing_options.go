@@ -67,6 +67,8 @@ func (p *Parser) applyURLOption(
 		return p.applySharpenOption(ctx, o, args)
 	case "pixelate", "pix":
 		return p.applyPixelateOption(ctx, o, args)
+	case "sticker_trace", "st":
+		return p.applyStickerTraceOption(ctx, o, args)
 	case "watermark", "wm":
 		return p.applyWatermarkOption(ctx, o, args)
 	case "strip_metadata", "sm":

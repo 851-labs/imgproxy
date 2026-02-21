@@ -63,9 +63,10 @@ const (
 
 	Background = "background"
 
-	Blur     = "blur"
-	Sharpen  = "sharpen"
-	Pixelate = "pixelate"
+	Blur         = "blur"
+	Sharpen      = "sharpen"
+	Pixelate     = "pixelate"
+	StickerTrace = "sticker_trace"
 
 	WatermarkOpacity  = "watermark.opacity"
 	WatermarkPosition = "watermark.position"

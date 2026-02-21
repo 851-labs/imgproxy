@@ -415,6 +415,24 @@ func (s *ProcessingOptionsTestSuite) TestParsePathSharpen() {
 	s.Require().InDelta(0.2, o.GetFloat(keys.Sharpen, 0.0), 0.0001)
 }
 
+func (s *ProcessingOptionsTestSuite) TestParsePathStickerTrace() {
+	path := "/sticker_trace:1/plain/http://images.dev/lorem/ipsum.jpg"
+	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().NoError(err)
+
+	s.Require().True(o.GetBool(keys.StickerTrace, false))
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathStickerTraceAlias() {
+	path := "/st:t/plain/http://images.dev/lorem/ipsum.jpg"
+	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().NoError(err)
+
+	s.Require().True(o.GetBool(keys.StickerTrace, false))
+}
+
 func (s *ProcessingOptionsTestSuite) TestParsePathDpr() {
 	path := "/dpr:2/plain/http://images.dev/lorem/ipsum.jpg"
 	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)

@@ -174,6 +174,10 @@ func (po ProcessingOptions) Pixelate() int {
 	return po.GetInt(keys.Pixelate, 1)
 }
 
+func (po ProcessingOptions) StickerTrace() bool {
+	return po.GetBool(keys.StickerTrace, false)
+}
+
 func (po ProcessingOptions) PreferWebP() bool {
 	return po.GetBool(keys.PreferWebP, false)
 }

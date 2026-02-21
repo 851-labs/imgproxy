@@ -342,6 +342,10 @@ func (p *Parser) applyPixelateOption(ctx context.Context, o *options.Options, ar
 	return p.parsePositiveInt(ctx, o, keys.Pixelate, args...)
 }
 
+func (p *Parser) applyStickerTraceOption(ctx context.Context, o *options.Options, args []string) error {
+	return p.parseBool(ctx, o, keys.StickerTrace, args...)
+}
+
 func (p *Parser) applyWatermarkOption(ctx context.Context, o *options.Options, args []string) error {
 	if err := p.ensureMaxArgs(ctx, "watermark", args, 7); err != nil {
 		return err

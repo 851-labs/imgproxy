@@ -26,6 +26,7 @@ func (p *Processor) mainPipeline() Pipeline {
 		p.scale,
 		p.rotateAndFlip,
 		p.cropToResult,
+		p.stickerTrace,
 		p.applyFilters,
 		p.extend,
 		p.extendAspectRatio,
