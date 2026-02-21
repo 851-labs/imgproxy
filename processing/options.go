@@ -178,6 +178,30 @@ func (po ProcessingOptions) StickerTrace() bool {
 	return po.GetBool(keys.StickerTrace, false)
 }
 
+func (po ProcessingOptions) BlurhashImageEnabled() bool {
+	return po.GetBool(keys.BlurhashImage, false)
+}
+
+func (po ProcessingOptions) BlurhashImageXComponents() int {
+	return po.GetInt(keys.BlurhashImageXComponents, 4)
+}
+
+func (po ProcessingOptions) BlurhashImageYComponents() int {
+	return po.GetInt(keys.BlurhashImageYComponents, 3)
+}
+
+func (po ProcessingOptions) BlurhashImagePunch() float64 {
+	return po.GetFloat(keys.BlurhashImagePunch, 1.0)
+}
+
+func (po ProcessingOptions) BlurhashImageResolutionX() int {
+	return po.GetInt(keys.BlurhashImageResolutionX, 32)
+}
+
+func (po ProcessingOptions) BlurhashImageResolutionY() int {
+	return po.GetInt(keys.BlurhashImageResolutionY, 32)
+}
+
 func (po ProcessingOptions) PreferWebP() bool {
 	return po.GetBool(keys.PreferWebP, false)
 }

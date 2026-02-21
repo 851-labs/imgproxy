@@ -34,6 +34,7 @@ func (p *Processor) mainPipeline() Pipeline {
 		p.fixSize,
 		p.flatten,
 		p.watermark,
+		p.blurhashImage,
 	}
 }
 

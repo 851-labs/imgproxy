@@ -68,6 +68,13 @@ const (
 	Pixelate     = "pixelate"
 	StickerTrace = "sticker_trace"
 
+	BlurhashImage            = "blurhash_image"
+	BlurhashImageXComponents = BlurhashImage + ".x_components"
+	BlurhashImageYComponents = BlurhashImage + ".y_components"
+	BlurhashImagePunch       = BlurhashImage + ".punch"
+	BlurhashImageResolutionX = BlurhashImage + ".resolution_x"
+	BlurhashImageResolutionY = BlurhashImage + ".resolution_y"
+
 	WatermarkOpacity  = "watermark.opacity"
 	WatermarkPosition = "watermark.position"
 	WatermarkXOffset  = "watermark" + SuffixXOffset

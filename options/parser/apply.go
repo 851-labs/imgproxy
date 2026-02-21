@@ -346,6 +346,68 @@ func (p *Parser) applyStickerTraceOption(ctx context.Context, o *options.Options
 	return p.parseBool(ctx, o, keys.StickerTrace, args...)
 }
 
+func (p *Parser) applyBlurhashImageOption(ctx context.Context, o *options.Options, args []string) error {
+	const (
+		minBlurhashImageComponents = 1
+		maxBlurhashImageComponents = 9
+		defaultBlurhashImagePunch  = 1.0
+		defaultBlurhashResolutionX = 32
+		defaultBlurhashResolutionY = 32
+		maxBlurhashResolution      = 256
+	)
+
+	if err := p.ensureMaxArgs(ctx, keys.BlurhashImage, args, 5); err != nil {
+		return err
+	}
+
+	if len(args) < 2 {
+		return newInvalidArgsError(ctx, keys.BlurhashImage, args)
+	}
+
+	xComponents, err := strconv.Atoi(args[0])
+	if err != nil || xComponents < minBlurhashImageComponents || xComponents > maxBlurhashImageComponents {
+		return newInvalidArgumentError(ctx, keys.BlurhashImageXComponents, args[0], "number in range 1-9")
+	}
+
+	yComponents, err := strconv.Atoi(args[1])
+	if err != nil || yComponents < minBlurhashImageComponents || yComponents > maxBlurhashImageComponents {
+		return newInvalidArgumentError(ctx, keys.BlurhashImageYComponents, args[1], "number in range 1-9")
+	}
+
+	punch := defaultBlurhashImagePunch
+	if len(args) > 2 && len(args[2]) > 0 {
+		punch, err = strconv.ParseFloat(args[2], 64)
+		if err != nil || punch <= 0 {
+			return newInvalidArgumentError(ctx, keys.BlurhashImagePunch, args[2], "positive number")
+		}
+	}
+
+	resolutionX := defaultBlurhashResolutionX
+	if len(args) > 3 && len(args[3]) > 0 {
+		resolutionX, err = strconv.Atoi(args[3])
+		if err != nil || resolutionX < 1 || resolutionX > maxBlurhashResolution {
+			return newInvalidArgumentError(ctx, keys.BlurhashImageResolutionX, args[3], "number in range 1-256")
+		}
+	}
+
+	resolutionY := defaultBlurhashResolutionY
+	if len(args) > 4 && len(args[4]) > 0 {
+		resolutionY, err = strconv.Atoi(args[4])
+		if err != nil || resolutionY < 1 || resolutionY > maxBlurhashResolution {
+			return newInvalidArgumentError(ctx, keys.BlurhashImageResolutionY, args[4], "number in range 1-256")
+		}
+	}
+
+	o.Set(keys.BlurhashImage, true)
+	o.Set(keys.BlurhashImageXComponents, xComponents)
+	o.Set(keys.BlurhashImageYComponents, yComponents)
+	o.Set(keys.BlurhashImagePunch, punch)
+	o.Set(keys.BlurhashImageResolutionX, resolutionX)
+	o.Set(keys.BlurhashImageResolutionY, resolutionY)
+
+	return nil
+}
+
 func (p *Parser) applyWatermarkOption(ctx context.Context, o *options.Options, args []string) error {
 	if err := p.ensureMaxArgs(ctx, "watermark", args, 7); err != nil {
 		return err

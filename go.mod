@@ -24,6 +24,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.39.4
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.64.4
 	github.com/aws/aws-sdk-go-v2/service/sts v1.38.4
+	github.com/bbrks/go-blurhash v1.2.0
 	github.com/bugsnag/bugsnag-go/v2 v2.6.2
 	github.com/corona10/goimagehash v1.1.0
 	github.com/felixge/httpsnoop v1.0.4

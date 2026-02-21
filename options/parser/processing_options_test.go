@@ -433,6 +433,48 @@ func (s *ProcessingOptionsTestSuite) TestParsePathStickerTraceAlias() {
 	s.Require().True(o.GetBool(keys.StickerTrace, false))
 }
 
+func (s *ProcessingOptionsTestSuite) TestParsePathBlurhashImage() {
+	path := "/blurhash_image:4:3/plain/http://images.dev/lorem/ipsum.jpg"
+	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().NoError(err)
+
+	s.Require().True(o.GetBool(keys.BlurhashImage, false))
+	s.Require().Equal(4, o.GetInt(keys.BlurhashImageXComponents, 0))
+	s.Require().Equal(3, o.GetInt(keys.BlurhashImageYComponents, 0))
+	s.Require().InDelta(1.0, o.GetFloat(keys.BlurhashImagePunch, 0), 0.0001)
+	s.Require().Equal(32, o.GetInt(keys.BlurhashImageResolutionX, 0))
+	s.Require().Equal(32, o.GetInt(keys.BlurhashImageResolutionY, 0))
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathBlurhashImageAlias() {
+	path := "/bhi:5:4:1.5:48:24/plain/http://images.dev/lorem/ipsum.jpg"
+	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().NoError(err)
+
+	s.Require().True(o.GetBool(keys.BlurhashImage, false))
+	s.Require().Equal(5, o.GetInt(keys.BlurhashImageXComponents, 0))
+	s.Require().Equal(4, o.GetInt(keys.BlurhashImageYComponents, 0))
+	s.Require().InDelta(1.5, o.GetFloat(keys.BlurhashImagePunch, 0), 0.0001)
+	s.Require().Equal(48, o.GetInt(keys.BlurhashImageResolutionX, 0))
+	s.Require().Equal(24, o.GetInt(keys.BlurhashImageResolutionY, 0))
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathBlurhashImageInvalidComponents() {
+	path := "/bhi:0:3/plain/http://images.dev/lorem/ipsum.jpg"
+	_, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().Error(err)
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathBlurhashImageInvalidResolution() {
+	path := "/bhi:4:3:1:300:24/plain/http://images.dev/lorem/ipsum.jpg"
+	_, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().Error(err)
+}
+
 func (s *ProcessingOptionsTestSuite) TestParsePathDpr() {
 	path := "/dpr:2/plain/http://images.dev/lorem/ipsum.jpg"
 	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
