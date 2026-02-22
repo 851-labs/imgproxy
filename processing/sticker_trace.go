@@ -136,7 +136,13 @@ func transformStickerTraceImage(ctx context.Context, fileBytes []byte) ([]byte, 
 		return nil, err
 	}
 
-	outputData := composeStickerImage(denoisedColorData, cleanedVisibleMask, stickerDistanceField, stickerFillMask, borderPixels)
+	outputData := composeStickerImage(
+		denoisedColorData,
+		cleanedVisibleMask,
+		stickerDistanceField,
+		stickerFillMask,
+		borderPixels,
+	)
 	outputImage := &image.NRGBA{
 		Pix:    outputData,
 		Stride: width * 4,
@@ -210,8 +216,8 @@ func getMaskBounds(mask []uint8, width int, height int) (bounds, bool) {
 	maxX := -1
 	maxY := -1
 
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
+	for y := range height {
+		for x := range width {
 			if mask[y*width+x] == 0 {
 				continue
 			}
@@ -257,7 +263,7 @@ func scaleAndCenterImage(sourceData []uint8, width int, height int, maskBounds b
 
 	parallelFor(height, func(start int, end int) {
 		for y := start; y < end; y++ {
-			for x := 0; x < width; x++ {
+			for x := range width {
 				sourceX := (float64(x)-outputCenterX)/scaleFactor + sourceCenterX
 				sourceY := (float64(y)-outputCenterY)/scaleFactor + sourceCenterY
 				red, green, blue, alpha := sampleBilinear(sourceData, width, height, sourceX, sourceY)
@@ -361,7 +367,14 @@ func sampleBilinear(imageData []uint8, width int, height int, x float64, y float
 	return red, green, blue, uint8(math.Round(alpha))
 }
 
-func bilinearInterpolate(topLeft float64, topRight float64, bottomLeft float64, bottomRight float64, tx float64, ty float64) float64 {
+func bilinearInterpolate(
+	topLeft float64,
+	topRight float64,
+	bottomLeft float64,
+	bottomRight float64,
+	tx float64,
+	ty float64,
+) float64 {
 	top := topLeft + (topRight-topLeft)*tx
 	bottom := bottomLeft + (bottomRight-bottomLeft)*tx
 	return top + (bottom-top)*ty
@@ -388,12 +401,12 @@ func fillInternalHoles(mask []uint8, width int, height int) []uint8 {
 		queueEnd++
 	}
 
-	for x := 0; x < width; x++ {
+	for x := range width {
 		tryQueue(x, 0)
 		tryQueue(x, height-1)
 	}
 
-	for y := 0; y < height; y++ {
+	for y := range height {
 		tryQueue(0, y)
 		tryQueue(width-1, y)
 	}
@@ -412,7 +425,7 @@ func fillInternalHoles(mask []uint8, width int, height int) []uint8 {
 	}
 
 	filledMask := make([]uint8, len(mask))
-	for index := 0; index < len(mask); index++ {
+	for index := range mask {
 		if mask[index] == 1 || visitedOutside[index] == 0 {
 			filledMask[index] = 1
 		}
@@ -446,7 +459,7 @@ func dilateMask(mask []uint8, width int, height int, radius int) []uint8 {
 
 	parallelFor(height, func(start int, end int) {
 		for y := start; y < end; y++ {
-			for x := 0; x < width; x++ {
+			for x := range width {
 				index := y*width + x
 				if mask[index] == 1 {
 					outputMask[index] = 1
@@ -489,7 +502,7 @@ func erodeMask(mask []uint8, width int, height int, radius int) []uint8 {
 
 	parallelFor(height, func(start int, end int) {
 		for y := start; y < end; y++ {
-			for x := 0; x < width; x++ {
+			for x := range width {
 				index := y*width + x
 				if mask[index] == 0 {
 					continue
@@ -535,11 +548,14 @@ func removeTinyDetachedComponents(mask []uint8, width int, height int) []uint8 {
 	labels := make([]int, len(mask))
 	queue := make([]int, len(mask))
 	componentSizes := []int{0}
-	minimumComponentPixels := max(stickerTraceMinComponentPixels, int(math.Round(float64(width*height)*stickerTraceComponentRatio)))
+	minimumComponentPixels := max(
+		stickerTraceMinComponentPixels,
+		int(math.Round(float64(width*height)*stickerTraceComponentRatio)),
+	)
 	nextLabel := 1
 	largestComponentLabel := 0
 
-	for index := 0; index < len(mask); index++ {
+	for index := range mask {
 		if mask[index] == 0 || labels[index] != 0 {
 			continue
 		}
@@ -584,7 +600,7 @@ func removeTinyDetachedComponents(mask []uint8, width int, height int) []uint8 {
 	}
 
 	cleanedMask := make([]uint8, len(mask))
-	for index := 0; index < len(mask); index++ {
+	for index := range mask {
 		label := labels[index]
 		if label == 0 {
 			continue
@@ -599,7 +615,17 @@ func removeTinyDetachedComponents(mask []uint8, width int, height int) []uint8 {
 	return cleanedMask
 }
 
-func queueMaskNeighbor(mask []uint8, labels []int, queue []int, width int, height int, x int, y int, label int, queueEnd int) bool {
+func queueMaskNeighbor(
+	mask []uint8,
+	labels []int,
+	queue []int,
+	width int,
+	height int,
+	x int,
+	y int,
+	label int,
+	queueEnd int,
+) bool {
 	if x < 0 || y < 0 || x >= width || y >= height {
 		return false
 	}
@@ -621,7 +647,7 @@ func removeColorSpeckles(imageData []uint8, visibleMask []uint8, width int, heig
 	queue := make([]int, len(candidateMask))
 	nextLabel := 1
 
-	for index := 0; index < len(candidateMask); index++ {
+	for index := range candidateMask {
 		if candidateMask[index] == 0 || componentLabels[index] != 0 {
 			continue
 		}
@@ -681,6 +707,8 @@ func removeColorSpeckles(imageData []uint8, visibleMask []uint8, width int, heig
 func removeLocalColorOutliers(imageData []uint8, visibleMask []uint8, width int, height int) []uint8 {
 	sourceData := append([]uint8(nil), imageData...)
 	outputData := append([]uint8(nil), imageData...)
+	similarNeighborDistanceSquared :=
+		stickerTraceColorSimilarNeighborDistance * stickerTraceColorSimilarNeighborDistance
 
 	for y := stickerTraceOutlierWindowRadius; y < height-stickerTraceOutlierWindowRadius; y++ {
 		for x := stickerTraceOutlierWindowRadius; x < width-stickerTraceOutlierWindowRadius; x++ {
@@ -738,7 +766,7 @@ func removeLocalColorOutliers(imageData []uint8, visibleMask []uint8, width int,
 
 			similarNeighbors := 0
 			for _, neighborColor := range neighborColors {
-				if colorDistanceSquared(pixelColor, neighborColor) <= stickerTraceColorSimilarNeighborDistance*stickerTraceColorSimilarNeighborDistance {
+				if colorDistanceSquared(pixelColor, neighborColor) <= similarNeighborDistanceSquared {
 					similarNeighbors++
 				}
 			}
@@ -759,6 +787,8 @@ func removeLocalColorOutliers(imageData []uint8, visibleMask []uint8, width int,
 
 func detectColorSpeckleCandidates(imageData []uint8, visibleMask []uint8, width int, height int) []uint8 {
 	candidateMask := make([]uint8, len(visibleMask))
+	similarNeighborDistanceSquared :=
+		stickerTraceColorSimilarNeighborDistance * stickerTraceColorSimilarNeighborDistance
 
 	for y := 1; y < height-1; y++ {
 		for x := 1; x < width-1; x++ {
@@ -789,7 +819,7 @@ func detectColorSpeckleCandidates(imageData []uint8, visibleMask []uint8, width 
 
 			similarNeighbors := 0
 			for _, neighborColor := range neighborColors {
-				if colorDistanceSquared(pixelColor, neighborColor) <= stickerTraceColorSimilarNeighborDistance*stickerTraceColorSimilarNeighborDistance {
+				if colorDistanceSquared(pixelColor, neighborColor) <= similarNeighborDistanceSquared {
 					similarNeighbors++
 				}
 			}
@@ -803,7 +833,17 @@ func detectColorSpeckleCandidates(imageData []uint8, visibleMask []uint8, width 
 	return candidateMask
 }
 
-func queueCandidateNeighbor(candidateMask []uint8, labels []int, queue []int, width int, height int, x int, y int, label int, queueEnd int) bool {
+func queueCandidateNeighbor(
+	candidateMask []uint8,
+	labels []int,
+	queue []int,
+	width int,
+	height int,
+	x int,
+	y int,
+	label int,
+	queueEnd int,
+) bool {
 	if x < 0 || y < 0 || x >= width || y >= height {
 		return false
 	}
@@ -818,7 +858,14 @@ func queueCandidateNeighbor(candidateMask []uint8, labels []int, queue []int, wi
 	return true
 }
 
-func inpaintSpeckleComponent(outputData []uint8, candidateMask []uint8, visibleMask []uint8, width int, height int, componentPixels []int) {
+func inpaintSpeckleComponent(
+	outputData []uint8,
+	candidateMask []uint8,
+	visibleMask []uint8,
+	width int,
+	height int,
+	componentPixels []int,
+) {
 	for _, componentIndex := range componentPixels {
 		x := componentIndex % width
 		y := componentIndex / width
@@ -867,7 +914,15 @@ func inpaintSpeckleComponent(outputData []uint8, candidateMask []uint8, visibleM
 	}
 }
 
-func getNeighborColors(imageData []uint8, visibleMask []uint8, width int, height int, x int, y int, buffer []color3) []color3 {
+func getNeighborColors(
+	imageData []uint8,
+	visibleMask []uint8,
+	width int,
+	height int,
+	x int,
+	y int,
+	buffer []color3,
+) []color3 {
 	colors := buffer[:0]
 
 	for offsetY := -1; offsetY <= 1; offsetY++ {
@@ -903,7 +958,16 @@ func getNeighborColors(imageData []uint8, visibleMask []uint8, width int, height
 	return colors
 }
 
-func getNeighborColorsWithRadius(imageData []uint8, visibleMask []uint8, width int, height int, x int, y int, radius int, buffer []color3) []color3 {
+func getNeighborColorsWithRadius(
+	imageData []uint8,
+	visibleMask []uint8,
+	width int,
+	height int,
+	x int,
+	y int,
+	radius int,
+	buffer []color3,
+) []color3 {
 	colors := buffer[:0]
 
 	for offsetY := -radius; offsetY <= radius; offsetY++ {
@@ -981,10 +1045,14 @@ func medianChannel(colors []color3, channel int) uint8 {
 
 	target := len(colors) / 2
 	total := 0
-	for value, count := range counts {
-		total += count
+	for value := uint8(0); ; value++ {
+		total += counts[value]
 		if total > target {
-			return uint8(value)
+			return value
+		}
+
+		if value == math.MaxUint8 {
+			break
 		}
 	}
 
@@ -1013,7 +1081,7 @@ func buildDistanceField(mask []uint8, width int, height int) []float64 {
 	parallelFor(width, func(start int, end int) {
 		for x := start; x < end; x++ {
 			column := make([]float64, height)
-			for y := 0; y < height; y++ {
+			for y := range height {
 				if mask[y*width+x] == 1 {
 					column[y] = 0
 				} else {
@@ -1022,7 +1090,7 @@ func buildDistanceField(mask []uint8, width int, height int) []float64 {
 			}
 
 			transformedColumn := squaredDistanceTransform1d(column)
-			for y := 0; y < height; y++ {
+			for y := range height {
 				columnPass[y*width+x] = transformedColumn[y]
 			}
 		}
@@ -1032,12 +1100,12 @@ func buildDistanceField(mask []uint8, width int, height int) []float64 {
 	parallelFor(height, func(start int, end int) {
 		for y := start; y < end; y++ {
 			row := make([]float64, width)
-			for x := 0; x < width; x++ {
+			for x := range width {
 				row[x] = columnPass[y*width+x]
 			}
 
 			transformedRow := squaredDistanceTransform1d(row)
-			for x := 0; x < width; x++ {
+			for x := range width {
 				fullPass[y*width+x] = transformedRow[x]
 			}
 		}
@@ -1073,7 +1141,7 @@ func squaredDistanceTransform1d(values []float64) []float64 {
 	boundaries[1] = math.Inf(1)
 
 	for query := 1; query < length; query++ {
-		intersection := 0.0
+		var intersection float64
 		for {
 			site := locations[hullSize]
 			intersection = (values[query] + float64(query*query) - (values[site] + float64(site*site))) / float64((query-site)*2)
@@ -1090,7 +1158,7 @@ func squaredDistanceTransform1d(values []float64) []float64 {
 	}
 
 	hullSize = 0
-	for query := 0; query < length; query++ {
+	for query := range length {
 		for boundaries[hullSize+1] < float64(query) {
 			hullSize++
 		}
@@ -1103,7 +1171,13 @@ func squaredDistanceTransform1d(values []float64) []float64 {
 	return output
 }
 
-func composeStickerImage(imageData []uint8, visibleMask []uint8, stickerDistanceField []float64, stickerFillMask []uint8, stickerRadius int) []uint8 {
+func composeStickerImage(
+	imageData []uint8,
+	visibleMask []uint8,
+	stickerDistanceField []float64,
+	stickerFillMask []uint8,
+	stickerRadius int,
+) []uint8 {
 	outputData := make([]uint8, len(imageData))
 
 	parallelFor(len(imageData)/4, func(start int, end int) {

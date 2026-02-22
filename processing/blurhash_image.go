@@ -95,7 +95,12 @@ func transformBlurhashImage(
 		return nil, fmt.Errorf("decode blurhash: %w", err)
 	}
 
-	scaledImage, err := resizeBlurhashImage(ctx, decodedBlurhash, transformOptions.TargetWidth, transformOptions.TargetHeight)
+	scaledImage, err := resizeBlurhashImage(
+		ctx,
+		decodedBlurhash,
+		transformOptions.TargetWidth,
+		transformOptions.TargetHeight,
+	)
 	if err != nil {
 		return nil, err
 	}

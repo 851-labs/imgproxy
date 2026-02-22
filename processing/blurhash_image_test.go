@@ -24,15 +24,19 @@ func TestTransformBlurhashImageKeepsTargetDimensions(t *testing.T) {
 		t.Fatalf("encode source png: %v", err)
 	}
 
-	transformedBytes, err := transformBlurhashImage(context.Background(), sourceBuffer.Bytes(), blurhashImageTransformOptions{
-		TargetWidth:  120,
-		TargetHeight: 80,
-		XComponents:  4,
-		YComponents:  3,
-		Punch:        1,
-		ResolutionX:  32,
-		ResolutionY:  32,
-	})
+	transformedBytes, err := transformBlurhashImage(
+		context.Background(),
+		sourceBuffer.Bytes(),
+		blurhashImageTransformOptions{
+			TargetWidth:  120,
+			TargetHeight: 80,
+			XComponents:  4,
+			YComponents:  3,
+			Punch:        1,
+			ResolutionX:  32,
+			ResolutionY:  32,
+		},
+	)
 	if err != nil {
 		t.Fatalf("transform blurhash image: %v", err)
 	}

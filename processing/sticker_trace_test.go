@@ -30,7 +30,7 @@ func TestFillStickerTraceGapsClosesNarrowChannel(t *testing.T) {
 		}
 	}
 
-	for y := 0; y <= 4; y++ {
+	for y := range 5 {
 		mask[y*width+4] = 0
 	}
 
@@ -56,7 +56,7 @@ func TestFillStickerTraceGapsKeepsWideChannelOpen(t *testing.T) {
 		}
 	}
 
-	for y := 0; y <= 6; y++ {
+	for y := range 7 {
 		for x := 5; x <= 7; x++ {
 			mask[y*width+x] = 0
 		}
