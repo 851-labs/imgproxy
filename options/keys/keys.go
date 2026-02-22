@@ -59,6 +59,11 @@ const (
 
 	Quality = "quality"
 
+	PrefixPngOptions             = "png_options"
+	PngOptionsInterlaced         = PrefixPngOptions + ".interlaced"
+	PngOptionsQuantize           = PrefixPngOptions + ".quantize"
+	PngOptionsQuantizationColors = PrefixPngOptions + ".quantization_colors"
+
 	MaxBytes = "max_bytes"
 
 	Background = "background"

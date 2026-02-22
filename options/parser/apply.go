@@ -284,6 +284,46 @@ func (p *Parser) applyFormatQualityOption(ctx context.Context, o *options.Option
 	return nil
 }
 
+func (p *Parser) applyPngOptionsOption(ctx context.Context, o *options.Options, args []string) error {
+	const (
+		minQuantizationColors = 2
+		maxQuantizationColors = 256
+	)
+
+	if err := p.ensureMaxArgs(ctx, keys.PrefixPngOptions, args, 3); err != nil {
+		return err
+	}
+
+	if len(args) > 0 && len(args[0]) > 0 {
+		interlaced, err := strconv.ParseBool(args[0])
+		if err != nil {
+			return newInvalidArgumentError(ctx, keys.PngOptionsInterlaced, args[0], "boolean")
+		}
+
+		o.Set(keys.PngOptionsInterlaced, interlaced)
+	}
+
+	if len(args) > 1 && len(args[1]) > 0 {
+		quantize, err := strconv.ParseBool(args[1])
+		if err != nil {
+			return newInvalidArgumentError(ctx, keys.PngOptionsQuantize, args[1], "boolean")
+		}
+
+		o.Set(keys.PngOptionsQuantize, quantize)
+	}
+
+	if len(args) > 2 && len(args[2]) > 0 {
+		quantizationColors, err := strconv.Atoi(args[2])
+		if err != nil || quantizationColors < minQuantizationColors || quantizationColors > maxQuantizationColors {
+			return newInvalidArgumentError(ctx, keys.PngOptionsQuantizationColors, args[2], "number in range 2-256")
+		}
+
+		o.Set(keys.PngOptionsQuantizationColors, quantizationColors)
+	}
+
+	return nil
+}
+
 func (p *Parser) applyMaxBytesOption(ctx context.Context, o *options.Options, args []string) error {
 	return p.parsePositiveInt(ctx, o, keys.MaxBytes, args...)
 }

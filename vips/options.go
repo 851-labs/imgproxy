@@ -6,6 +6,7 @@ package vips
 import "C"
 import (
 	"github.com/imgproxy/imgproxy/v3/options"
+	"github.com/imgproxy/imgproxy/v3/options/keys"
 )
 
 func newLoadOptions(shrink float64, page, pages int) C.ImgproxyLoadOptions {
@@ -21,13 +22,24 @@ func newLoadOptions(shrink float64, page, pages int) C.ImgproxyLoadOptions {
 	}
 }
 
-func newSaveOptions(_ *options.Options) C.ImgproxySaveOptions {
+func newSaveOptions(o *options.Options) C.ImgproxySaveOptions {
+	pngInterlaced := config.PngInterlaced
+	pngQuantize := config.PngQuantize
+	pngQuantizationColors := config.PngQuantizationColors
+
+	if o != nil {
+		mainOptions := o.Main()
+		pngInterlaced = mainOptions.GetBool(keys.PngOptionsInterlaced, pngInterlaced)
+		pngQuantize = mainOptions.GetBool(keys.PngOptionsQuantize, pngQuantize)
+		pngQuantizationColors = mainOptions.GetInt(keys.PngOptionsQuantizationColors, pngQuantizationColors)
+	}
+
 	return C.ImgproxySaveOptions{
 		JpegProgressive: gbool(config.JpegProgressive),
 
-		PngInterlaced:         gbool(config.PngInterlaced),
-		PngQuantize:           gbool(config.PngQuantize),
-		PngQuantizationColors: C.int(config.PngQuantizationColors),
+		PngInterlaced:         gbool(pngInterlaced),
+		PngQuantize:           gbool(pngQuantize),
+		PngQuantizationColors: C.int(pngQuantizationColors),
 
 		WebpPreset: C.VipsForeignWebpPreset(config.WebpPreset),
 		WebpEffort: C.int(config.WebpEffort),

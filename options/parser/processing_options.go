@@ -86,6 +86,8 @@ func (p *Parser) applyURLOption(
 		return p.applyQualityOption(ctx, o.Main(), args)
 	case "format_quality", "fq":
 		return p.applyFormatQualityOption(ctx, o.Main(), args)
+	case "png_options", "pngo":
+		return p.applyPngOptionsOption(ctx, o.Main(), args)
 	case "max_bytes", "mb":
 		return p.applyMaxBytesOption(ctx, o.Main(), args)
 	case "format", "f", "ext":

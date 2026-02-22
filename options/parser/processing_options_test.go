@@ -364,6 +364,53 @@ func (s *ProcessingOptionsTestSuite) TestParsePathQuality() {
 	s.Require().Equal(55, o.GetInt(keys.Quality, 0))
 }
 
+func (s *ProcessingOptionsTestSuite) TestParsePathPngOptions() {
+	path := "/png_options:false:true:256/plain/http://images.dev/lorem/ipsum.jpg"
+	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().NoError(err)
+
+	s.Require().False(o.GetBool(keys.PngOptionsInterlaced, true))
+	s.Require().True(o.GetBool(keys.PngOptionsQuantize, false))
+	s.Require().Equal(256, o.GetInt(keys.PngOptionsQuantizationColors, 0))
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathPngOptionsAlias() {
+	path := "/pngo:true:false:64/plain/http://images.dev/lorem/ipsum.jpg"
+	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().NoError(err)
+
+	s.Require().True(o.GetBool(keys.PngOptionsInterlaced, false))
+	s.Require().False(o.GetBool(keys.PngOptionsQuantize, true))
+	s.Require().Equal(64, o.GetInt(keys.PngOptionsQuantizationColors, 0))
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathPngOptionsPartial() {
+	path := "/pngo::true/plain/http://images.dev/lorem/ipsum.jpg"
+	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().NoError(err)
+
+	s.Require().False(o.Has(keys.PngOptionsInterlaced))
+	s.Require().True(o.GetBool(keys.PngOptionsQuantize, false))
+	s.Require().False(o.Has(keys.PngOptionsQuantizationColors))
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathPngOptionsInvalidQuantizationColors() {
+	path := "/pngo:false:true:300/plain/http://images.dev/lorem/ipsum.jpg"
+	_, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().Error(err)
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathPngOptionsInvalidBool() {
+	path := "/pngo:invalid:true:256/plain/http://images.dev/lorem/ipsum.jpg"
+	_, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().Error(err)
+}
+
 func (s *ProcessingOptionsTestSuite) TestParsePathBackground() {
 	path := "/background:128:129:130/plain/http://images.dev/lorem/ipsum.jpg"
 	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
