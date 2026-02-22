@@ -1,12 +1,20 @@
 name: Publish Fork Image
 
 on:
-  push:
-    branches: ["851"]
+  workflow_run:
+    workflows: ["OnPush"]
+    types: [completed]
   workflow_dispatch:
 
 jobs:
   publish:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'workflow_run' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == '851'
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -15,6 +23,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -37,7 +47,7 @@ jobs:
           tags: |
             type=sha,prefix=851-,format=short
             type=raw,value=851-latest
-            type=ref,event=branch
+            type=raw,value=851
 
       - name: Build and push
         uses: docker/build-push-action@v6
