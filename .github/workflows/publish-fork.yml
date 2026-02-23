@@ -13,7 +13,7 @@ jobs:
   publish:
     needs: [ci]
     if: ${{ needs.ci.result == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS, ARM64, claudl]
     permissions:
       contents: read
       packages: write
@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          set-safe-directory: false
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
