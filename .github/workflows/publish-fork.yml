@@ -60,13 +60,11 @@ jobs:
             brew install colima
           fi
 
-          if colima status >/dev/null 2>&1; then
-            colima stop
-          fi
+          profile="imgproxy-ci"
 
-          colima start --cpu 6 --memory 12 --disk 80
+          colima start --profile "$profile" --cpu 6 --memory 12 --disk 120
 
-          if configure_socket "$HOME/.colima/default/docker.sock"; then
+          if configure_socket "$HOME/.colima/${profile}/docker.sock"; then
             exit 0
           fi
 
