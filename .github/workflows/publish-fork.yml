@@ -36,9 +36,8 @@ jobs:
           profile="imgproxy-ci"
           socket="$HOME/.colima/${profile}/docker.sock"
 
-          if colima status --profile "$profile" >/dev/null 2>&1; then
-            colima stop --profile "$profile"
-          fi
+          colima stop --profile "$profile" >/dev/null 2>&1 || true
+          colima delete --profile "$profile" --force >/dev/null 2>&1 || true
 
           colima start --profile "$profile" --cpu 8 --memory 12 --disk 120
 
