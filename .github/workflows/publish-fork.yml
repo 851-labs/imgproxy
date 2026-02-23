@@ -29,42 +29,24 @@ jobs:
         run: |
           set -euo pipefail
 
-          configure_socket() {
-            local socket="$1"
-
-            echo "DOCKER_HOST=unix://${socket}" >> "$GITHUB_ENV"
-            export DOCKER_HOST="unix://${socket}"
-
-            if docker info >/dev/null 2>&1; then
-              echo "Using Docker socket: ${socket}"
-              return 0
-            fi
-
-            return 1
-          }
-
-          sockets=(
-            "$HOME/.orbstack/run/docker.sock"
-            "$HOME/.docker/run/docker.sock"
-            "/var/run/docker.sock"
-            "$HOME/.colima/default/docker.sock"
-          )
-
-          for socket in "${sockets[@]}"; do
-            if [[ -S "${socket}" ]] && configure_socket "${socket}"; then
-              exit 0
-            fi
-          done
-
           if ! command -v colima >/dev/null 2>&1; then
             brew install colima
           fi
 
           profile="imgproxy-ci"
+          socket="$HOME/.colima/${profile}/docker.sock"
 
-          colima start --profile "$profile" --cpu 6 --memory 12 --disk 120
+          if colima status --profile "$profile" >/dev/null 2>&1; then
+            colima stop --profile "$profile"
+          fi
 
-          if configure_socket "$HOME/.colima/${profile}/docker.sock"; then
+          colima start --profile "$profile" --cpu 8 --memory 12 --disk 120
+
+          echo "DOCKER_HOST=unix://${socket}" >> "$GITHUB_ENV"
+          export DOCKER_HOST="unix://${socket}"
+
+          if docker info >/dev/null 2>&1; then
+            echo "Using Docker socket: ${socket}"
             exit 0
           fi
 
