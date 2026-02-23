@@ -64,6 +64,10 @@ jobs:
             brew install qemu
           fi
 
+          if [[ ! -f "$(brew --prefix lima)/share/lima/lima-guestagent.Linux-x86_64.gz" ]]; then
+            brew install lima-additional-guestagents
+          fi
+
           profile="imgproxy-ci-amd64"
 
           start_profile() {
