@@ -63,7 +63,7 @@ jobs:
           profile="imgproxy-ci"
 
           start_profile() {
-            colima start --profile "$profile" --cpu 6 --memory 12 --disk 120
+            colima start --profile "$profile" --vm-type vz --vz-rosetta --cpu 6 --memory 12 --disk 120
           }
 
           if ! start_profile; then
