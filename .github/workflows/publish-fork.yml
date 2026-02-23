@@ -62,7 +62,16 @@ jobs:
 
           profile="imgproxy-ci"
 
-          colima start --profile "$profile" --cpu 6 --memory 12 --disk 120
+          start_profile() {
+            colima start --profile "$profile" --cpu 4 --memory 12 --disk 120
+          }
+
+          if ! start_profile; then
+            echo "colima start failed; recreating ${profile} profile"
+            colima stop --profile "$profile" >/dev/null 2>&1 || true
+            colima delete --profile "$profile" --force >/dev/null 2>&1 || true
+            start_profile
+          fi
 
           if configure_socket "$HOME/.colima/${profile}/docker.sock"; then
             exit 0
