@@ -60,6 +60,10 @@ jobs:
             brew install colima
           fi
 
+          if ! command -v qemu-img >/dev/null 2>&1; then
+            brew install qemu
+          fi
+
           profile="imgproxy-ci-amd64"
 
           start_profile() {
