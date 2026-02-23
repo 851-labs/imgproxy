@@ -60,7 +60,11 @@ jobs:
             brew install colima
           fi
 
-          colima start
+          if colima status >/dev/null 2>&1; then
+            colima stop
+          fi
+
+          colima start --cpu 6 --memory 12 --disk 80
 
           if configure_socket "$HOME/.colima/default/docker.sock"; then
             exit 0
