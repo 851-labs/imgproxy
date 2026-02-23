@@ -108,7 +108,9 @@ jobs:
         with:
           context: .
           file: docker/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
+          build-args: |
+            GOFLAGS=-p=1
           push: true
           provenance: false
           tags: ${{ steps.meta.outputs.tags }}
