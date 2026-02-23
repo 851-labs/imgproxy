@@ -13,7 +13,7 @@ jobs:
   publish:
     needs: [ci]
     if: ${{ needs.ci.result == 'success' }}
-    runs-on: [self-hosted, macOS, ARM64, claudl]
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
@@ -21,72 +21,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          set-safe-directory: false
 
-      - name: Configure Docker daemon
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          configure_socket() {
-            local socket="$1"
-
-            echo "DOCKER_HOST=unix://${socket}" >> "$GITHUB_ENV"
-            export DOCKER_HOST="unix://${socket}"
-
-            if docker info >/dev/null 2>&1; then
-              echo "Using Docker socket: ${socket}"
-              return 0
-            fi
-
-            return 1
-          }
-
-          sockets=(
-            "$HOME/.orbstack/run/docker.sock"
-            "$HOME/.docker/run/docker.sock"
-            "/var/run/docker.sock"
-            "$HOME/.colima/default/docker.sock"
-          )
-
-          for socket in "${sockets[@]}"; do
-            if [[ -S "${socket}" ]] && configure_socket "${socket}"; then
-              exit 0
-            fi
-          done
-
-          if ! command -v colima >/dev/null 2>&1; then
-            brew install colima
-          fi
-
-          if ! command -v qemu-img >/dev/null 2>&1; then
-            brew install qemu
-          fi
-
-          if [[ ! -f "$(brew --prefix lima)/share/lima/lima-guestagent.Linux-x86_64.gz" ]]; then
-            brew install lima-additional-guestagents
-          fi
-
-          profile="imgproxy-ci-amd64"
-
-          start_profile() {
-            colima start --profile "$profile" --vm-type qemu --arch x86_64 --cpu 6 --memory 12 --disk 120
-          }
-
-          if ! start_profile; then
-            echo "colima start failed; recreating ${profile} profile"
-            colima stop --profile "$profile" >/dev/null 2>&1 || true
-            colima delete --profile "$profile" --force >/dev/null 2>&1 || true
-            start_profile
-          fi
-
-          if configure_socket "$HOME/.colima/${profile}/docker.sock"; then
-            exit 0
-          fi
-
-          echo "No working Docker daemon found on this runner"
-          exit 1
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
@@ -113,9 +50,7 @@ jobs:
         with:
           context: .
           file: docker/Dockerfile
-          platforms: linux/amd64
-          build-args: |
-            GOFLAGS=-p=1
+          platforms: linux/amd64,linux/arm64
           push: true
           provenance: false
           tags: ${{ steps.meta.outputs.tags }}
