@@ -24,6 +24,51 @@ jobs:
         with:
           set-safe-directory: false
 
+      - name: Configure Docker daemon
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          configure_socket() {
+            local socket="$1"
+
+            echo "DOCKER_HOST=unix://${socket}" >> "$GITHUB_ENV"
+            export DOCKER_HOST="unix://${socket}"
+
+            if docker info >/dev/null 2>&1; then
+              echo "Using Docker socket: ${socket}"
+              return 0
+            fi
+
+            return 1
+          }
+
+          sockets=(
+            "$HOME/.orbstack/run/docker.sock"
+            "$HOME/.docker/run/docker.sock"
+            "/var/run/docker.sock"
+            "$HOME/.colima/default/docker.sock"
+          )
+
+          for socket in "${sockets[@]}"; do
+            if [[ -S "${socket}" ]] && configure_socket "${socket}"; then
+              exit 0
+            fi
+          done
+
+          if ! command -v colima >/dev/null 2>&1; then
+            brew install colima
+          fi
+
+          colima start
+
+          if configure_socket "$HOME/.colima/default/docker.sock"; then
+            exit 0
+          fi
+
+          echo "No working Docker daemon found on this runner"
+          exit 1
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
