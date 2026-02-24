@@ -638,7 +638,7 @@ func (s *ProcessingOptionsTestSuite) TestParsePathWatermarkURLEmpty() {
 	s.Require().NoError(err)
 
 	s.Require().True(o.Has(keys.WatermarkURL))
-	s.Require().Equal("", o.GetString(keys.WatermarkURL, "fallback"))
+	s.Require().Empty(o.GetString(keys.WatermarkURL, "fallback"))
 }
 
 func (s *ProcessingOptionsTestSuite) TestParsePathWatermarkURLInvalid() {

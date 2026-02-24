@@ -139,7 +139,7 @@ func (s *WatermarkProviderTestSuite) TestGetDynamicWatermarkURLInvalid() {
 
 	_, _, err = provider.Get(s.T().Context(), o)
 	s.Require().Error(err)
-	s.Require().True(strings.Contains(strings.ToLower(err.Error()), "can't download watermark"))
+	s.Require().Contains(strings.ToLower(err.Error()), "can't download watermark")
 }
 
 func TestWatermarkProvider(t *testing.T) {
