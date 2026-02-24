@@ -505,6 +505,30 @@ func (p *Parser) applyWatermarkOption(ctx context.Context, o *options.Options, a
 	return nil
 }
 
+func (p *Parser) applyWatermarkURLOption(ctx context.Context, o *options.Options, args []string) error {
+	return p.parseBase64String(ctx, o, keys.WatermarkURL, args...)
+}
+
+func (p *Parser) applyWatermarkSizeOption(ctx context.Context, o *options.Options, args []string) error {
+	if err := p.ensureMaxArgs(ctx, "watermark_size", args, 2); err != nil {
+		return err
+	}
+
+	if len(args) < 2 {
+		return newInvalidArgsError(ctx, "watermark_size", args)
+	}
+
+	if err := p.parsePositiveInt(ctx, o, keys.WatermarkSizeWidth, args[0]); err != nil {
+		return err
+	}
+
+	if err := p.parsePositiveInt(ctx, o, keys.WatermarkSizeHeight, args[1]); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (p *Parser) applyFormatOption(ctx context.Context, o *options.Options, args []string) error {
 	if err := p.ensureMaxArgs(ctx, keys.Format, args, 1); err != nil {
 		return err

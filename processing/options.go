@@ -290,6 +290,22 @@ func (po ProcessingOptions) WatermarkScale() float64 {
 	return po.GetFloat(keys.WatermarkScale, 0.0)
 }
 
+func (po ProcessingOptions) WatermarkURL() string {
+	return po.GetString(keys.WatermarkURL, "")
+}
+
+func (po ProcessingOptions) WatermarkSizeWidth() int {
+	return po.GetInt(keys.WatermarkSizeWidth, 0)
+}
+
+func (po ProcessingOptions) WatermarkSizeHeight() int {
+	return po.GetInt(keys.WatermarkSizeHeight, 0)
+}
+
+func (po ProcessingOptions) HasWatermarkSize() bool {
+	return po.Has(keys.WatermarkSizeWidth) || po.Has(keys.WatermarkSizeHeight)
+}
+
 // Quality retrieves the quality setting for a given image format.
 // It first checks for a general quality setting, then for a format-specific setting,
 // and finally falls back to the configured default quality.

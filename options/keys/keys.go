@@ -82,11 +82,14 @@ const (
 	BlurhashImageResolutionX = BlurhashImage + ".resolution_x"
 	BlurhashImageResolutionY = BlurhashImage + ".resolution_y"
 
-	WatermarkOpacity  = "watermark.opacity"
-	WatermarkPosition = "watermark.position"
-	WatermarkXOffset  = "watermark" + SuffixXOffset
-	WatermarkYOffset  = "watermark" + SuffixYOffset
-	WatermarkScale    = "watermark.scale"
+	WatermarkOpacity    = "watermark.opacity"
+	WatermarkPosition   = "watermark.position"
+	WatermarkXOffset    = "watermark" + SuffixXOffset
+	WatermarkYOffset    = "watermark" + SuffixYOffset
+	WatermarkScale      = "watermark.scale"
+	WatermarkURL        = "watermark.url"
+	WatermarkSizeWidth  = "watermark.size.width"
+	WatermarkSizeHeight = "watermark.size.height"
 
 	Format = "format"
 

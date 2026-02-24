@@ -613,6 +613,75 @@ func (s *ProcessingOptionsTestSuite) TestParsePathWatermark() {
 	s.Require().InDelta(0.6, o.GetFloat(keys.WatermarkScale, 0.0), 0.0001)
 }
 
+func (s *ProcessingOptionsTestSuite) TestParsePathWatermarkURL() {
+	path := "/watermark_url:aHR0cHM6Ly9hdHRpYy5zaC9sb2dvLnBuZw/plain/http://images.dev/lorem/ipsum.jpg"
+	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().NoError(err)
+
+	s.Require().Equal("https://attic.sh/logo.png", o.GetString(keys.WatermarkURL, ""))
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathWatermarkURLAlias() {
+	path := "/wmu:aHR0cHM6Ly9hdHRpYy5zaC9sb2dvLnBuZw/plain/http://images.dev/lorem/ipsum.jpg"
+	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().NoError(err)
+
+	s.Require().Equal("https://attic.sh/logo.png", o.GetString(keys.WatermarkURL, ""))
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathWatermarkURLEmpty() {
+	path := "/wmu:/plain/http://images.dev/lorem/ipsum.jpg"
+	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().NoError(err)
+
+	s.Require().True(o.Has(keys.WatermarkURL))
+	s.Require().Equal("", o.GetString(keys.WatermarkURL, "fallback"))
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathWatermarkURLInvalid() {
+	path := "/wmu:***/plain/http://images.dev/lorem/ipsum.jpg"
+	_, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().Error(err)
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathWatermarkSize() {
+	path := "/watermark_size:96:64/plain/http://images.dev/lorem/ipsum.jpg"
+	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().NoError(err)
+
+	s.Require().Equal(96, o.GetInt(keys.WatermarkSizeWidth, 0))
+	s.Require().Equal(64, o.GetInt(keys.WatermarkSizeHeight, 0))
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathWatermarkSizeAlias() {
+	path := "/wms:0:96/plain/http://images.dev/lorem/ipsum.jpg"
+	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().NoError(err)
+
+	s.Require().Equal(0, o.GetInt(keys.WatermarkSizeWidth, -1))
+	s.Require().Equal(96, o.GetInt(keys.WatermarkSizeHeight, 0))
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathWatermarkSizeInvalidArgs() {
+	path := "/wms:96/plain/http://images.dev/lorem/ipsum.jpg"
+	_, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().Error(err)
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathWatermarkSizeInvalidValue() {
+	path := "/wms:-1:96/plain/http://images.dev/lorem/ipsum.jpg"
+	_, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().Error(err)
+}
+
 func (s *ProcessingOptionsTestSuite) TestParsePathPreset() {
 	s.config().Presets = []string{
 		"test1=resizing_type:fill",

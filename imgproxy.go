@@ -91,7 +91,7 @@ func New(ctx context.Context, config *Config) (*Imgproxy, error) {
 		return nil, err
 	}
 
-	watermarkImage, err := auximageprovider.NewStaticProvider(ctx, &config.WatermarkImage, "watermark", idf)
+	watermarkImage, err := auximageprovider.NewWatermarkProvider(ctx, &config.WatermarkImage, idf)
 	if err != nil {
 		return nil, err
 	}

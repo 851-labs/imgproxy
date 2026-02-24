@@ -55,6 +55,9 @@ func (p *Processor) prepareWatermark(
 	if scale := po.WatermarkScale(); scale > 0 {
 		wmPo.Set(keys.Width, max(imath.ScaleToEven(imgWidth, scale), 1))
 		wmPo.Set(keys.Height, max(imath.ScaleToEven(imgHeight, scale), 1))
+	} else if po.HasWatermarkSize() {
+		wmPo.Set(keys.Width, po.WatermarkSizeWidth())
+		wmPo.Set(keys.Height, po.WatermarkSizeHeight())
 	}
 
 	shouldReplicate := shouldReplicateWatermark(po.WatermarkPosition())

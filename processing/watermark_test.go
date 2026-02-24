@@ -18,6 +18,8 @@ type watermarkTestCase struct {
 	xOffset  float64
 	yOffset  float64
 	scale    float64
+	sizeW    int
+	sizeH    int
 	dpr      float64
 }
 
@@ -33,6 +35,10 @@ func (w watermarkTestCase) String() string {
 
 	if w.scale != 0 {
 		fmt.Fprintf(&b, "_scale_%g", w.scale)
+	}
+
+	if w.sizeW != 0 || w.sizeH != 0 {
+		fmt.Fprintf(&b, "_size_%d_%d", w.sizeW, w.sizeH)
 	}
 
 	if w.dpr != 0 {
@@ -67,6 +73,14 @@ func (w watermarkTestCase) Set(o *options.Options) {
 		o.Set(keys.WatermarkScale, w.scale)
 	} else {
 		o.Delete(keys.WatermarkScale)
+	}
+
+	if w.sizeW != 0 || w.sizeH != 0 {
+		o.Set(keys.WatermarkSizeWidth, w.sizeW)
+		o.Set(keys.WatermarkSizeHeight, w.sizeH)
+	} else {
+		o.Delete(keys.WatermarkSizeWidth)
+		o.Delete(keys.WatermarkSizeHeight)
 	}
 
 	if w.dpr != 0 {
@@ -270,6 +284,34 @@ func (s *WatermarkTestSuite) TestWatermark() {
 				position: GravityReplicate,
 				opacity:  1,
 				scale:    0.5,
+			},
+			outSize: outSize,
+		},
+		{
+			opts: watermarkTestCase{
+				position: GravityReplicate,
+				opacity:  1,
+				sizeW:    96,
+				sizeH:    96,
+			},
+			outSize: outSize,
+		},
+		{
+			opts: watermarkTestCase{
+				position: GravityReplicate,
+				opacity:  1,
+				sizeW:    0,
+				sizeH:    96,
+			},
+			outSize: outSize,
+		},
+		{
+			opts: watermarkTestCase{
+				position: GravityReplicate,
+				opacity:  1,
+				scale:    0.5,
+				sizeW:    96,
+				sizeH:    96,
 			},
 			outSize: outSize,
 		},

@@ -77,6 +77,10 @@ func (p *Parser) applyURLOption(
 		return p.applyBlurhashImageOption(ctx, o, args)
 	case "watermark", "wm":
 		return p.applyWatermarkOption(ctx, o, args)
+	case "watermark_url", "wmu":
+		return p.applyWatermarkURLOption(ctx, o, args)
+	case "watermark_size", "wms":
+		return p.applyWatermarkSizeOption(ctx, o, args)
 	case "strip_metadata", "sm":
 		return p.applyStripMetadataOption(ctx, o.Main(), args)
 	case "keep_copyright", "kcr":
