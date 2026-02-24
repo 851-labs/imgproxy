@@ -67,6 +67,8 @@ const (
 	MaxBytes = "max_bytes"
 
 	Background = "background"
+	Brightness = "brightness"
+	Saturation = "saturation"
 
 	Blur         = "blur"
 	Sharpen      = "sharpen"

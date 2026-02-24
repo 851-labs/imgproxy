@@ -444,6 +444,72 @@ func (s *ProcessingOptionsTestSuite) TestParsePathBackgroundDisable() {
 	s.Require().False(o.Has(keys.Background))
 }
 
+func (s *ProcessingOptionsTestSuite) TestParsePathBrightness() {
+	path := "/brightness:50/plain/http://images.dev/lorem/ipsum.jpg"
+	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().NoError(err)
+
+	s.Require().Equal(50, o.GetInt(keys.Brightness, 0))
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathBrightnessAlias() {
+	path := "/br:-255/plain/http://images.dev/lorem/ipsum.jpg"
+	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().NoError(err)
+
+	s.Require().Equal(-255, o.GetInt(keys.Brightness, 0))
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathBrightnessInvalidRange() {
+	path := "/br:256/plain/http://images.dev/lorem/ipsum.jpg"
+	_, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().Error(err)
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathBrightnessInvalidValue() {
+	path := "/br:1.5/plain/http://images.dev/lorem/ipsum.jpg"
+	_, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().Error(err)
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathSaturation() {
+	path := "/saturation:5/plain/http://images.dev/lorem/ipsum.jpg"
+	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().NoError(err)
+
+	s.Require().InDelta(5.0, o.GetFloat(keys.Saturation, 0.0), 0.0001)
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathSaturationAlias() {
+	path := "/sa:0.5/plain/http://images.dev/lorem/ipsum.jpg"
+	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().NoError(err)
+
+	s.Require().InDelta(0.5, o.GetFloat(keys.Saturation, 0.0), 0.0001)
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathSaturationZero() {
+	path := "/sa:0/plain/http://images.dev/lorem/ipsum.jpg"
+	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().NoError(err)
+
+	s.Require().InDelta(0.0, o.GetFloat(keys.Saturation, 1.0), 0.0001)
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathSaturationInvalidValue() {
+	path := "/sa:-0.5/plain/http://images.dev/lorem/ipsum.jpg"
+	_, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().Error(err)
+}
+
 func (s *ProcessingOptionsTestSuite) TestParsePathBlur() {
 	path := "/blur:0.2/plain/http://images.dev/lorem/ipsum.jpg"
 	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)

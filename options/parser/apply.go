@@ -370,6 +370,25 @@ func (p *Parser) applyBackgroundOption(ctx context.Context, o *options.Options, 
 	return nil
 }
 
+func (p *Parser) applyBrightnessOption(ctx context.Context, o *options.Options, args []string) error {
+	if err := p.ensureMaxArgs(ctx, keys.Brightness, args, 1); err != nil {
+		return err
+	}
+
+	brightness, err := strconv.Atoi(args[0])
+	if err != nil || brightness < -255 || brightness > 255 {
+		return newInvalidArgumentError(ctx, keys.Brightness, args[0], "number in range -255-255")
+	}
+
+	o.Set(keys.Brightness, brightness)
+
+	return nil
+}
+
+func (p *Parser) applySaturationOption(ctx context.Context, o *options.Options, args []string) error {
+	return p.parsePositiveFloat(ctx, o, keys.Saturation, args...)
+}
+
 func (p *Parser) applyBlurOption(ctx context.Context, o *options.Options, args []string) error {
 	return p.parsePositiveNonZeroFloat(ctx, o, keys.Blur, args...)
 }

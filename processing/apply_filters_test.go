@@ -19,13 +19,17 @@ type ApplyFiltersTestSuite struct {
 }
 
 type effectTestCase struct {
-	blur     float64
-	sharpen  float64
-	pixelate int
+	blur       float64
+	brightness int
+	saturation float64
+	sharpen    float64
+	pixelate   int
 }
 
 func (r effectTestCase) Set(o *options.Options) {
 	o.Set(keys.Blur, r.blur)
+	o.Set(keys.Brightness, r.brightness)
+	o.Set(keys.Saturation, r.saturation)
 	o.Set(keys.Sharpen, r.sharpen)
 	o.Set(keys.Pixelate, r.pixelate)
 }
@@ -35,6 +39,14 @@ func (r effectTestCase) String() string {
 
 	if r.blur > 0 {
 		fmt.Fprintf(b, "_blur_%f", r.blur)
+	}
+
+	if r.brightness != 0 {
+		fmt.Fprintf(b, "_brightness_%d", r.brightness)
+	}
+
+	if r.saturation != 1 {
+		fmt.Fprintf(b, "_saturation_%f", r.saturation)
 	}
 
 	if r.sharpen > 0 {
@@ -67,10 +79,14 @@ func (s *ApplyFiltersTestSuite) TestEffects() {
 	outSize := testSize{400, 400}
 
 	testCases := []testCase[effectTestCase]{
-		{opts: effectTestCase{10, 0, 0}, outSize: outSize},
-		{opts: effectTestCase{0, 10, 0}, outSize: outSize},
-		{opts: effectTestCase{0, 0, 10}, outSize: outSize},
-		{opts: effectTestCase{10, 10, 10}, outSize: outSize},
+		{opts: effectTestCase{blur: 10, brightness: 0, saturation: 1, sharpen: 0, pixelate: 0}, outSize: outSize},
+		{opts: effectTestCase{blur: 0, brightness: 0, saturation: 1, sharpen: 10, pixelate: 0}, outSize: outSize},
+		{opts: effectTestCase{blur: 0, brightness: 0, saturation: 1, sharpen: 0, pixelate: 10}, outSize: outSize},
+		{opts: effectTestCase{blur: 10, brightness: 0, saturation: 1, sharpen: 10, pixelate: 10}, outSize: outSize},
+		{opts: effectTestCase{blur: 0, brightness: 50, saturation: 1, sharpen: 0, pixelate: 0}, outSize: outSize},
+		{opts: effectTestCase{blur: 0, brightness: -50, saturation: 1, sharpen: 0, pixelate: 0}, outSize: outSize},
+		{opts: effectTestCase{blur: 0, brightness: 0, saturation: 0, sharpen: 0, pixelate: 0}, outSize: outSize},
+		{opts: effectTestCase{blur: 80, brightness: 50, saturation: 5, sharpen: 0, pixelate: 0}, outSize: outSize},
 	}
 
 	for _, tc := range testCases {

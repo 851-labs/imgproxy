@@ -78,7 +78,7 @@ int vips_smartcrop_go(VipsImage *in, VipsImage **out, int width, int height);
 int vips_trim(VipsImage *in, VipsImage **out, double threshold, gboolean smart, RGB bg, gboolean equal_hor, gboolean equal_ver);
 
 int vips_apply_filters(VipsImage *in, VipsImage **out, double blur_sigma, double sharp_sigma,
-    int pixelate_pixels);
+    int pixelate_pixels, int brightness, double saturation);
 
 int vips_flatten_go(VipsImage *in, VipsImage **out, RGB bg);
 

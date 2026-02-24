@@ -739,15 +739,81 @@ vips_smartcrop_go(VipsImage *in, VipsImage **out, int width, int height)
 
 int
 vips_apply_filters(VipsImage *in, VipsImage **out, double blur_sigma,
-    double sharp_sigma, int pixelate_pixels)
+    double sharp_sigma, int pixelate_pixels, int brightness, double saturation)
 {
 
   VipsImage *base = vips_image_new();
-  VipsImage **t = (VipsImage **) vips_object_local_array(VIPS_OBJECT(base), 10);
+  VipsImage **t = (VipsImage **) vips_object_local_array(VIPS_OBJECT(base), 20);
 
   VipsInterpretation interpretation = in->Type;
   VipsBandFormat format = in->BandFmt;
   gboolean premultiplied = FALSE;
+
+  if (brightness != 0 || saturation != 1.0) {
+    VipsImage *alpha = NULL;
+
+    if (saturation != 1.0) {
+      if (vips_guard_colorspace(in, &t[10], TRUE)) {
+        VIPS_UNREF(base);
+        return 1;
+      }
+
+      in = t[10];
+    }
+
+    if (vips_image_hasalpha(in)) {
+      if (vips_extract_band(in, &t[11], 0, "n", in->Bands - 1, NULL) ||
+          vips_extract_band(in, &t[12], in->Bands - 1, "n", 1, NULL)) {
+        VIPS_UNREF(base);
+        return 1;
+      }
+
+      in = t[11];
+      alpha = t[12];
+    }
+
+    if (saturation != 1.0) {
+      const double rw = 0.2126;
+      const double gw = 0.7152;
+      const double bw = 0.0722;
+      const double inv = 1.0 - saturation;
+
+      VipsImage *matrix = vips_image_new_matrixv(
+          3, 3,
+          inv * rw + saturation, inv * gw, inv * bw,
+          inv * rw, inv * gw + saturation, inv * bw,
+          inv * rw, inv * gw, inv * bw + saturation);
+
+      if (!matrix || vips_recomb(in, &t[13], matrix, NULL)) {
+        if (matrix)
+          g_object_unref(matrix);
+
+        VIPS_UNREF(base);
+        return 1;
+      }
+
+      g_object_unref(matrix);
+      in = t[13];
+    }
+
+    if (brightness != 0) {
+      if (vips_linear1(in, &t[14], 1.0, brightness, NULL)) {
+        VIPS_UNREF(base);
+        return 1;
+      }
+
+      in = t[14];
+    }
+
+    if (alpha) {
+      if (vips_bandjoin2(in, alpha, &t[15], NULL)) {
+        VIPS_UNREF(base);
+        return 1;
+      }
+
+      in = t[15];
+    }
+  }
 
   if ((blur_sigma > 0 || sharp_sigma > 0) && vips_image_hasalpha(in)) {
     if (
@@ -828,8 +894,8 @@ vips_apply_filters(VipsImage *in, VipsImage **out, double blur_sigma,
   }
 
   int res =
-      vips_colourspace(in, &t[9], interpretation, NULL) ||
-      vips_cast(t[9], out, format, NULL);
+      vips_colourspace(in, &t[16], interpretation, NULL) ||
+      vips_cast(t[16], out, format, NULL);
 
   VIPS_UNREF(base);
 

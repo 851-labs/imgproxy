@@ -61,6 +61,10 @@ func (p *Parser) applyURLOption(
 		return p.applyFlipOption(ctx, o, args)
 	case "background", "bg":
 		return p.applyBackgroundOption(ctx, o, args)
+	case "brightness", "br":
+		return p.applyBrightnessOption(ctx, o, args)
+	case "saturation", "sa":
+		return p.applySaturationOption(ctx, o, args)
 	case "blur", "bl":
 		return p.applyBlurOption(ctx, o, args)
 	case "sharpen", "sh":

@@ -166,6 +166,14 @@ func (po ProcessingOptions) Blur() float64 {
 	return po.GetFloat(keys.Blur, 0.0)
 }
 
+func (po ProcessingOptions) Brightness() int {
+	return po.GetInt(keys.Brightness, 0)
+}
+
+func (po ProcessingOptions) Saturation() float64 {
+	return po.GetFloat(keys.Saturation, 1.0)
+}
+
 func (po ProcessingOptions) Sharpen() float64 {
 	return po.GetFloat(keys.Sharpen, 0.0)
 }

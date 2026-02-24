@@ -704,10 +704,22 @@ func (img *Image) Flatten(bg color.RGB) error {
 	return nil
 }
 
-func (img *Image) ApplyFilters(blurSigma, sharpSigma float64, pixelatePixels int) error {
+func (img *Image) ApplyFilters(
+	blurSigma, sharpSigma float64,
+	pixelatePixels, brightness int,
+	saturation float64,
+) error {
 	var tmp *C.VipsImage
 
-	if C.vips_apply_filters(img.VipsImage, &tmp, C.double(blurSigma), C.double(sharpSigma), C.int(pixelatePixels)) != 0 {
+	if C.vips_apply_filters(
+		img.VipsImage,
+		&tmp,
+		C.double(blurSigma),
+		C.double(sharpSigma),
+		C.int(pixelatePixels),
+		C.int(brightness),
+		C.double(saturation),
+	) != 0 {
 		return Error()
 	}
 
