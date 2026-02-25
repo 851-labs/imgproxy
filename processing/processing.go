@@ -22,8 +22,7 @@ func (p *Processor) mainPipeline() Pipeline {
 		p.trim,
 		p.scaleOnLoad,
 		p.colorspaceToProcessing,
-		// Run sticker trace before geometry transforms so final downscaling can
-		// smooth traced edges, matching the legacy two-pass behavior.
+		// Run sticker trace before geometry transforms so final downscaling smooths traced edges.
 		p.stickerTrace,
 		p.crop,
 		p.scale,
