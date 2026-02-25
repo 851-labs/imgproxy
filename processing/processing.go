@@ -22,11 +22,13 @@ func (p *Processor) mainPipeline() Pipeline {
 		p.trim,
 		p.scaleOnLoad,
 		p.colorspaceToProcessing,
+		// Run sticker trace before geometry transforms so final downscaling can
+		// smooth traced edges, matching the legacy two-pass behavior.
+		p.stickerTrace,
 		p.crop,
 		p.scale,
 		p.rotateAndFlip,
 		p.cropToResult,
-		p.stickerTrace,
 		p.applyFilters,
 		p.extend,
 		p.extendAspectRatio,

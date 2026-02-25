@@ -3,12 +3,17 @@ package processing
 import (
 	"bytes"
 	"fmt"
+	"image"
+	"image/color"
+	"image/png"
 	"testing"
 
 	"github.com/imgproxy/imgproxy/v3/errctx"
 	"github.com/imgproxy/imgproxy/v3/imagedata"
+	"github.com/imgproxy/imgproxy/v3/imagetype"
 	"github.com/imgproxy/imgproxy/v3/options"
 	"github.com/imgproxy/imgproxy/v3/options/keys"
+	"github.com/imgproxy/imgproxy/v3/testutil"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -838,6 +843,73 @@ func (s *ProcessingTestSuite) TestImageResolutionTooLarge() {
 
 	s.Require().Error(err)
 	s.Require().Equal(422, errctx.Wrap(err).StatusCode())
+}
+
+func (s *ProcessingTestSuite) TestStickerTraceMatchesTwoPassTraceThenResize() {
+	sourceImage := image.NewNRGBA(image.Rect(0, 0, 512, 512))
+
+	for x := 32; x < 480; x++ {
+		sourceImage.SetNRGBA(x, 64, color.NRGBA{R: 226, G: 47, B: 47, A: 255})
+		sourceImage.SetNRGBA(x, 448, color.NRGBA{R: 47, G: 150, B: 226, A: 255})
+	}
+
+	for y := 64; y < 448; y++ {
+		sourceImage.SetNRGBA(64, y, color.NRGBA{R: 47, G: 150, B: 226, A: 255})
+		sourceImage.SetNRGBA(448, y, color.NRGBA{R: 226, G: 47, B: 47, A: 255})
+	}
+
+	for i := range 512 {
+		sourceImage.SetNRGBA(i, i, color.NRGBA{R: 40, G: 217, B: 97, A: 255})
+		if i+1 < 512 {
+			sourceImage.SetNRGBA(i+1, i, color.NRGBA{R: 40, G: 217, B: 97, A: 255})
+		}
+	}
+
+	for y := 172; y < 340; y++ {
+		for x := 172; x < 340; x++ {
+			sourceImage.SetNRGBA(x, y, color.NRGBA{})
+		}
+	}
+
+	var sourceImageBuffer bytes.Buffer
+	err := png.Encode(&sourceImageBuffer, sourceImage)
+	s.Require().NoError(err)
+
+	sourceImageBytes := sourceImageBuffer.Bytes()
+
+	tracedImageBytes, err := transformStickerTraceImage(s.T().Context(), sourceImageBytes)
+	s.Require().NoError(err)
+
+	sourceImageData := imagedata.NewFromBytesWithFormat(imagetype.PNG, sourceImageBytes)
+	defer sourceImageData.Close()
+
+	tracedImageData := imagedata.NewFromBytesWithFormat(imagetype.PNG, tracedImageBytes)
+	defer tracedImageData.Close()
+
+	singlePassOptions := options.New()
+	singlePassOptions.Set(keys.StickerTrace, true)
+	singlePassOptions.Set(keys.Width, 96)
+	singlePassOptions.Set(keys.Format, imagetype.PNG)
+
+	singlePassResult, err := s.Processor().ProcessImage(s.T().Context(), sourceImageData, singlePassOptions)
+	s.Require().NoError(err)
+	defer singlePassResult.OutData.Close()
+
+	twoPassOptions := options.New()
+	twoPassOptions.Set(keys.Width, 96)
+	twoPassOptions.Set(keys.Format, imagetype.PNG)
+
+	twoPassResult, err := s.Processor().ProcessImage(s.T().Context(), tracedImageData, twoPassOptions)
+	s.Require().NoError(err)
+	defer twoPassResult.OutData.Close()
+
+	if !testutil.ReadersEqual(
+		s.T(),
+		twoPassResult.OutData.Reader(),
+		singlePassResult.OutData.Reader(),
+	) {
+		s.T().Fatal("expected single-pass sticker_trace output to match two-pass trace-then-resize output")
+	}
 }
 
 func TestProcessing(t *testing.T) {
