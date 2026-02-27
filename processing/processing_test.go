@@ -1004,6 +1004,60 @@ func (s *ProcessingTestSuite) TestDropShadowAddsShadowBehindAlphaMask() {
 	s.Require().Equal(color.NRGBA{A: 255}, withShadowPixel)
 }
 
+func (s *ProcessingTestSuite) TestDropShadowInsetsToAvoidClippingOnOpaqueEdges() {
+	alphaImage := image.NewNRGBA(image.Rect(0, 0, 24, 24))
+
+	for y := range 24 {
+		for x := 2; x < 22; x++ {
+			alphaImage.SetNRGBA(x, y, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
+		}
+	}
+
+	var encoded bytes.Buffer
+	err := png.Encode(&encoded, alphaImage)
+	s.Require().NoError(err)
+
+	imageData := imagedata.NewFromBytesWithFormat(imagetype.PNG, encoded.Bytes())
+	defer imageData.Close()
+
+	processingOptions := options.New()
+	processingOptions.Set(keys.Format, imagetype.PNG)
+	processingOptions.Set(
+		keys.DropShadow,
+		[]DropShadowLayer{
+			{XOffset: 0, YOffset: 1, Blur: 1, Opacity: 0.26},
+			{XOffset: 0, YOffset: 1, Blur: 2, Opacity: 0.18},
+		},
+	)
+
+	result, err := s.Processor().ProcessImage(s.T().Context(), imageData, processingOptions)
+	s.Require().NoError(err)
+	defer result.OutData.Close()
+
+	output := decodeImageToNRGBA(s.T(), result.OutData.Reader())
+
+	maxForegroundY := -1
+
+	for y := range output.Bounds().Dy() {
+		for x := range output.Bounds().Dx() {
+			pixel := output.NRGBAAt(x, y)
+
+			if pixel.A < 200 {
+				continue
+			}
+
+			if pixel.R < 200 || pixel.G < 200 || pixel.B < 200 {
+				continue
+			}
+
+			maxForegroundY = max(maxForegroundY, y)
+		}
+	}
+
+	s.Require().GreaterOrEqual(maxForegroundY, 0)
+	s.Require().Less(maxForegroundY, output.Bounds().Dy()-1)
+}
+
 func decodeImageToNRGBA(t *testing.T, encodedImageBytesReader io.Reader) *image.NRGBA {
 	t.Helper()
 
@@ -1017,6 +1071,35 @@ func decodeImageToNRGBA(t *testing.T, encodedImageBytesReader io.Reader) *image.
 	draw.Draw(decodedImageNRGBA, decodedImageNRGBA.Bounds(), decodedImage, decodedBounds.Min, draw.Src)
 
 	return decodedImageNRGBA
+}
+
+func alphaBounds(imageNRGBA *image.NRGBA) (int, int, int, int) {
+	width := imageNRGBA.Bounds().Dx()
+	height := imageNRGBA.Bounds().Dy()
+
+	minX := width
+	minY := height
+	maxX := -1
+	maxY := -1
+
+	for y := range height {
+		for x := range width {
+			if imageNRGBA.NRGBAAt(x, y).A == 0 {
+				continue
+			}
+
+			minX = min(minX, x)
+			minY = min(minY, y)
+			maxX = max(maxX, x)
+			maxY = max(maxY, y)
+		}
+	}
+
+	if maxX < 0 || maxY < 0 {
+		return 0, 0, 0, 0
+	}
+
+	return minX, minY, maxX, maxY
 }
 
 func TestProcessing(t *testing.T) {
