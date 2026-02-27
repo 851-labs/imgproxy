@@ -10,6 +10,13 @@ import (
 	"github.com/imgproxy/imgproxy/v3/vips/color"
 )
 
+type DropShadowLayer struct {
+	XOffset int
+	YOffset int
+	Blur    float64
+	Opacity float64
+}
+
 // ProcessingOptions is a thin wrapper around options.Options that provides
 // helpers for image processing options.
 type ProcessingOptions struct {
@@ -184,6 +191,14 @@ func (po ProcessingOptions) Pixelate() int {
 
 func (po ProcessingOptions) StickerTrace() bool {
 	return po.GetBool(keys.StickerTrace, false)
+}
+
+func (po ProcessingOptions) DropShadowLayers() []DropShadowLayer {
+	return options.Get(po.Options, keys.DropShadow, []DropShadowLayer(nil))
+}
+
+func (po ProcessingOptions) DropShadowEnabled() bool {
+	return len(po.DropShadowLayers()) > 0
 }
 
 func (po ProcessingOptions) BlurhashImageEnabled() bool {

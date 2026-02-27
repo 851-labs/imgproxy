@@ -931,6 +931,53 @@ func (img *Image) ApplyWatermark(wm *Image, left, top int, opacity float64) erro
 	return nil
 }
 
+func (img *Image) ApplyDropShadow(
+	xOffsets []int,
+	yOffsets []int,
+	blurSigma []float64,
+	opacities []float64,
+) error {
+	layersCount := len(xOffsets)
+
+	if layersCount == 0 {
+		return nil
+	}
+
+	if len(yOffsets) != layersCount || len(blurSigma) != layersCount || len(opacities) != layersCount {
+		return fmt.Errorf("drop shadow layer slices must have the same length")
+	}
+
+	xOffsetsC := make([]C.int, layersCount)
+	yOffsetsC := make([]C.int, layersCount)
+	blurSigmaC := make([]C.double, layersCount)
+	opacitiesC := make([]C.double, layersCount)
+
+	for i := range layersCount {
+		xOffsetsC[i] = C.int(xOffsets[i])
+		yOffsetsC[i] = C.int(yOffsets[i])
+		blurSigmaC[i] = C.double(blurSigma[i])
+		opacitiesC[i] = C.double(opacities[i])
+	}
+
+	var tmp *C.VipsImage
+
+	if C.vips_apply_drop_shadow(
+		img.VipsImage,
+		&tmp,
+		(*C.int)(unsafe.Pointer(&xOffsetsC[0])),
+		(*C.int)(unsafe.Pointer(&yOffsetsC[0])),
+		(*C.double)(unsafe.Pointer(&blurSigmaC[0])),
+		(*C.double)(unsafe.Pointer(&opacitiesC[0])),
+		C.int(layersCount),
+	) != 0 {
+		return Error()
+	}
+
+	img.swapAndUnref(tmp)
+
+	return nil
+}
+
 func (img *Image) Strip(keepExifCopyright bool) error {
 	var tmp *C.VipsImage
 

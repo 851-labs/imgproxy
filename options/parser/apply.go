@@ -405,6 +405,85 @@ func (p *Parser) applyStickerTraceOption(ctx context.Context, o *options.Options
 	return p.parseBool(ctx, o, keys.StickerTrace, args...)
 }
 
+func (p *Parser) applyDropShadowOption(ctx context.Context, o *options.Options, args []string) error {
+	const (
+		dropShadowArgsPerLayer = 4
+		dropShadowMaxLayers    = 4
+		dropShadowMaxBlur      = 64
+	)
+
+	if len(args) == 0 || len(args)%dropShadowArgsPerLayer != 0 {
+		return newInvalidArgsError(ctx, keys.DropShadow, args)
+	}
+
+	layersCount := len(args) / dropShadowArgsPerLayer
+	if layersCount > dropShadowMaxLayers {
+		return newOptionArgumentError(
+			ctx,
+			keys.DropShadow,
+			"Too many drop shadow layers: max %d",
+			dropShadowMaxLayers,
+		)
+	}
+
+	layers := make([]processing.DropShadowLayer, 0, layersCount)
+
+	for layerIndex := range layersCount {
+		argsOffset := layerIndex * dropShadowArgsPerLayer
+
+		xOffset, err := strconv.Atoi(args[argsOffset])
+		if err != nil {
+			return newInvalidArgumentError(
+				ctx,
+				fmt.Sprintf("%s.layer%d.x", keys.DropShadow, layerIndex+1),
+				args[argsOffset],
+				"integer number",
+			)
+		}
+
+		yOffset, err := strconv.Atoi(args[argsOffset+1])
+		if err != nil {
+			return newInvalidArgumentError(
+				ctx,
+				fmt.Sprintf("%s.layer%d.y", keys.DropShadow, layerIndex+1),
+				args[argsOffset+1],
+				"integer number",
+			)
+		}
+
+		blur, err := strconv.ParseFloat(args[argsOffset+2], 64)
+		if err != nil || blur < 0 || blur > dropShadowMaxBlur {
+			return newInvalidArgumentError(
+				ctx,
+				fmt.Sprintf("%s.layer%d.blur", keys.DropShadow, layerIndex+1),
+				args[argsOffset+2],
+				"number in range 0-64",
+			)
+		}
+
+		opacity, err := strconv.ParseFloat(args[argsOffset+3], 64)
+		if err != nil || opacity < 0 || opacity > 1 {
+			return newInvalidArgumentError(
+				ctx,
+				fmt.Sprintf("%s.layer%d.opacity", keys.DropShadow, layerIndex+1),
+				args[argsOffset+3],
+				"number in range 0-1",
+			)
+		}
+
+		layers = append(layers, processing.DropShadowLayer{
+			XOffset: xOffset,
+			YOffset: yOffset,
+			Blur:    blur,
+			Opacity: opacity,
+		})
+	}
+
+	o.Set(keys.DropShadow, layers)
+
+	return nil
+}
+
 func (p *Parser) applyBlurhashImageOption(ctx context.Context, o *options.Options, args []string) error {
 	const (
 		minBlurhashImageComponents = 1
