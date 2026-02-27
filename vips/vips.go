@@ -978,6 +978,19 @@ func (img *Image) ApplyDropShadow(
 	return nil
 }
 
+func (img *Image) AlphaBounds() (int, int, int, int, error) {
+	left := C.int(0)
+	top := C.int(0)
+	width := C.int(0)
+	height := C.int(0)
+
+	if C.vips_alpha_bounds(img.VipsImage, &left, &top, &width, &height) != 0 {
+		return 0, 0, 0, 0, Error()
+	}
+
+	return int(left), int(top), int(width), int(height), nil
+}
+
 func (img *Image) Strip(keepExifCopyright bool) error {
 	var tmp *C.VipsImage
 

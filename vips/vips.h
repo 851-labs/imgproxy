@@ -91,6 +91,8 @@ int vips_apply_watermark(VipsImage *in, VipsImage *watermark, VipsImage **out, i
 int vips_apply_drop_shadow(VipsImage *in, VipsImage **out, const int *offset_x, const int *offset_y,
     const double *blur_sigma, const double *opacity, int n_layers);
 
+int vips_alpha_bounds(VipsImage *in, int *left, int *top, int *width, int *height);
+
 int vips_linecache_seq(VipsImage *in, VipsImage **out, int tile_height);
 
 int vips_arrayjoin_go(VipsImage **in, VipsImage **out, int n);
