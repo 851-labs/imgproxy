@@ -55,6 +55,39 @@ func TestMainPipelineRunsStickerTraceBeforeGeometrySteps(t *testing.T) {
 	}
 }
 
+func TestMainPipelineRunsDropShadowAfterFixSizeBeforeFlatten(t *testing.T) {
+	pipeline := new(Processor).mainPipeline()
+
+	fixSizeStepIndex := pipelineStepIndex(pipeline, "fixSize")
+	dropShadowStepIndex := pipelineStepIndex(pipeline, "dropShadow")
+	flattenStepIndex := pipelineStepIndex(pipeline, "flatten")
+
+	if fixSizeStepIndex < 0 || dropShadowStepIndex < 0 || flattenStepIndex < 0 {
+		t.Fatalf(
+			"expected pipeline steps were not found: fix_size=%d drop_shadow=%d flatten=%d",
+			fixSizeStepIndex,
+			dropShadowStepIndex,
+			flattenStepIndex,
+		)
+	}
+
+	if dropShadowStepIndex <= fixSizeStepIndex {
+		t.Fatalf(
+			"expected drop_shadow after fix_size, got fix_size=%d drop_shadow=%d",
+			fixSizeStepIndex,
+			dropShadowStepIndex,
+		)
+	}
+
+	if dropShadowStepIndex >= flattenStepIndex {
+		t.Fatalf(
+			"expected drop_shadow before flatten, got drop_shadow=%d flatten=%d",
+			dropShadowStepIndex,
+			flattenStepIndex,
+		)
+	}
+}
+
 func TestCanScaleOnLoadDisabledForStickerTrace(t *testing.T) {
 	config := NewDefaultConfig()
 	processor := &Processor{config: &config}

@@ -74,6 +74,7 @@ const (
 	Sharpen      = "sharpen"
 	Pixelate     = "pixelate"
 	StickerTrace = "sticker_trace"
+	DropShadow   = "drop_shadow"
 
 	BlurhashImage            = "blurhash_image"
 	BlurhashImageXComponents = BlurhashImage + ".x_components"

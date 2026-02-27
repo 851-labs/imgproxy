@@ -33,6 +33,7 @@ func (p *Processor) mainPipeline() Pipeline {
 		p.extendAspectRatio,
 		p.padding,
 		p.fixSize,
+		p.dropShadow,
 		p.flatten,
 		p.watermark,
 		p.blurhashImage,

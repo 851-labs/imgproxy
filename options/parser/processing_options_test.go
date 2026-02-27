@@ -546,6 +546,65 @@ func (s *ProcessingOptionsTestSuite) TestParsePathStickerTraceAlias() {
 	s.Require().True(o.GetBool(keys.StickerTrace, false))
 }
 
+func (s *ProcessingOptionsTestSuite) TestParsePathDropShadowSingleLayer() {
+	path := "/drop_shadow:0:1:1:0.26/plain/http://images.dev/lorem/ipsum.jpg"
+	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().NoError(err)
+
+	layers := options.Get(o, keys.DropShadow, []processing.DropShadowLayer(nil))
+	s.Require().Len(layers, 1)
+	s.Require().Equal(
+		processing.DropShadowLayer{XOffset: 0, YOffset: 1, Blur: 1, Opacity: 0.26},
+		layers[0],
+	)
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathDropShadowTwoLayersAlias() {
+	path := "/ds:0:1:1:0.26:0:1:2:0.18/plain/http://images.dev/lorem/ipsum.jpg"
+	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().NoError(err)
+
+	layers := options.Get(o, keys.DropShadow, []processing.DropShadowLayer(nil))
+	s.Require().Len(layers, 2)
+	s.Require().Equal(
+		[]processing.DropShadowLayer{
+			{XOffset: 0, YOffset: 1, Blur: 1, Opacity: 0.26},
+			{XOffset: 0, YOffset: 1, Blur: 2, Opacity: 0.18},
+		},
+		layers,
+	)
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathDropShadowInvalidArgCount() {
+	path := "/ds:0:1:1/plain/http://images.dev/lorem/ipsum.jpg"
+	_, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().Error(err)
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathDropShadowInvalidBlurRange() {
+	path := "/ds:0:1:65:0.5/plain/http://images.dev/lorem/ipsum.jpg"
+	_, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().Error(err)
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathDropShadowInvalidOpacityRange() {
+	path := "/ds:0:1:1:1.2/plain/http://images.dev/lorem/ipsum.jpg"
+	_, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().Error(err)
+}
+
+func (s *ProcessingOptionsTestSuite) TestParsePathDropShadowRejectsTooManyLayers() {
+	path := "/ds:0:1:1:0.5:0:1:2:0.5:0:1:3:0.5:0:1:4:0.5:0:1:5:0.5/plain/http://images.dev/lorem/ipsum.jpg"
+	_, _, err := s.parser().ParsePath(s.T().Context(), path, nil)
+
+	s.Require().Error(err)
+}
+
 func (s *ProcessingOptionsTestSuite) TestParsePathBlurhashImage() {
 	path := "/blurhash_image:4:3/plain/http://images.dev/lorem/ipsum.jpg"
 	o, _, err := s.parser().ParsePath(s.T().Context(), path, nil)

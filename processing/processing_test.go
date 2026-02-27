@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 	"image/png"
+	"io"
 	"testing"
 
 	"github.com/imgproxy/imgproxy/v3/errctx"
@@ -910,6 +912,111 @@ func (s *ProcessingTestSuite) TestStickerTraceMatchesTwoPassTraceThenResize() {
 	) {
 		s.T().Fatal("expected single-pass sticker_trace output to match two-pass trace-then-resize output")
 	}
+}
+
+func (s *ProcessingTestSuite) TestDropShadowNoOpWithoutAlpha() {
+	noAlphaImage := image.NewGray(image.Rect(0, 0, 24, 24))
+
+	for y := range 24 {
+		for x := range 24 {
+			noAlphaImage.SetGray(x, y, color.Gray{Y: uint8(x + y)})
+		}
+	}
+
+	var encoded bytes.Buffer
+	err := png.Encode(&encoded, noAlphaImage)
+	s.Require().NoError(err)
+
+	sourceBytes := encoded.Bytes()
+
+	withoutShadowImageData := imagedata.NewFromBytesWithFormat(imagetype.PNG, sourceBytes)
+	defer withoutShadowImageData.Close()
+
+	withShadowImageData := imagedata.NewFromBytesWithFormat(imagetype.PNG, sourceBytes)
+	defer withShadowImageData.Close()
+
+	withoutShadowOptions := options.New()
+	withoutShadowOptions.Set(keys.Format, imagetype.PNG)
+
+	withShadowOptions := options.New()
+	withShadowOptions.Set(keys.Format, imagetype.PNG)
+	withShadowOptions.Set(keys.DropShadow, []DropShadowLayer{{XOffset: 0, YOffset: 1, Blur: 1, Opacity: 0.5}})
+
+	withoutShadowResult, err := s.Processor().ProcessImage(s.T().Context(), withoutShadowImageData, withoutShadowOptions)
+	s.Require().NoError(err)
+	defer withoutShadowResult.OutData.Close()
+
+	withShadowResult, err := s.Processor().ProcessImage(s.T().Context(), withShadowImageData, withShadowOptions)
+	s.Require().NoError(err)
+	defer withShadowResult.OutData.Close()
+
+	if !testutil.ReadersEqual(s.T(), withoutShadowResult.OutData.Reader(), withShadowResult.OutData.Reader()) {
+		s.T().Fatal("expected drop_shadow to be a no-op for images without alpha")
+	}
+}
+
+func (s *ProcessingTestSuite) TestDropShadowAddsShadowBehindAlphaMask() {
+	alphaImage := image.NewNRGBA(image.Rect(0, 0, 24, 24))
+
+	for y := 8; y <= 15; y++ {
+		for x := 8; x <= 15; x++ {
+			alphaImage.SetNRGBA(x, y, color.NRGBA{R: 226, G: 47, B: 47, A: 255})
+		}
+	}
+
+	var encoded bytes.Buffer
+	err := png.Encode(&encoded, alphaImage)
+	s.Require().NoError(err)
+
+	sourceBytes := encoded.Bytes()
+
+	withoutShadowImageData := imagedata.NewFromBytesWithFormat(imagetype.PNG, sourceBytes)
+	defer withoutShadowImageData.Close()
+
+	withShadowImageData := imagedata.NewFromBytesWithFormat(imagetype.PNG, sourceBytes)
+	defer withShadowImageData.Close()
+
+	withoutShadowOptions := options.New()
+	withoutShadowOptions.Set(keys.Format, imagetype.PNG)
+
+	withShadowOptions := options.New()
+	withShadowOptions.Set(keys.Format, imagetype.PNG)
+	withShadowOptions.Set(keys.DropShadow, []DropShadowLayer{{XOffset: 1, YOffset: 1, Blur: 0, Opacity: 1}})
+
+	withoutShadowResult, err := s.Processor().ProcessImage(s.T().Context(), withoutShadowImageData, withoutShadowOptions)
+	s.Require().NoError(err)
+	defer withoutShadowResult.OutData.Close()
+
+	withShadowResult, err := s.Processor().ProcessImage(s.T().Context(), withShadowImageData, withShadowOptions)
+	s.Require().NoError(err)
+	defer withShadowResult.OutData.Close()
+
+	withoutShadowOutput := decodeImageToNRGBA(s.T(), withoutShadowResult.OutData.Reader())
+	withShadowOutput := decodeImageToNRGBA(s.T(), withShadowResult.OutData.Reader())
+
+	s.Require().Equal(withoutShadowResult.ResultWidth, withShadowResult.ResultWidth)
+	s.Require().Equal(withoutShadowResult.ResultHeight, withShadowResult.ResultHeight)
+
+	withoutShadowPixel := withoutShadowOutput.NRGBAAt(16, 16)
+	withShadowPixel := withShadowOutput.NRGBAAt(16, 16)
+
+	s.Require().Equal(color.NRGBA{}, withoutShadowPixel)
+	s.Require().Equal(color.NRGBA{A: 255}, withShadowPixel)
+}
+
+func decodeImageToNRGBA(t *testing.T, encodedImageBytesReader io.Reader) *image.NRGBA {
+	t.Helper()
+
+	decodedImage, _, err := image.Decode(encodedImageBytesReader)
+	if err != nil {
+		t.Fatalf("decode image: %v", err)
+	}
+
+	decodedBounds := decodedImage.Bounds()
+	decodedImageNRGBA := image.NewNRGBA(image.Rect(0, 0, decodedBounds.Dx(), decodedBounds.Dy()))
+	draw.Draw(decodedImageNRGBA, decodedImageNRGBA.Bounds(), decodedImage, decodedBounds.Min, draw.Src)
+
+	return decodedImageNRGBA
 }
 
 func TestProcessing(t *testing.T) {

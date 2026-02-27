@@ -1141,6 +1141,118 @@ vips_apply_watermark(VipsImage *in, VipsImage *watermark, VipsImage **out, int l
 }
 
 int
+vips_apply_drop_shadow(
+    VipsImage *in,
+    VipsImage **out,
+    const int *offset_x,
+    const int *offset_y,
+    const double *blur_sigma,
+    const double *opacity,
+    int n_layers)
+{
+  if (n_layers <= 0 || !vips_image_hasalpha(in))
+    return vips_copy(in, out, NULL);
+
+  int color_bands = in->Bands - 1;
+  if (color_bands < 1)
+    color_bands = 1;
+
+  VipsImage *base = vips_image_new();
+  VipsImage **t = (VipsImage **) vips_object_local_array(VIPS_OBJECT(base), n_layers * 4 + 10);
+
+  int ti = 0;
+  VipsImage *alpha = NULL;
+  VipsImage *black_color = NULL;
+  VipsImage *shadow = NULL;
+
+  if (vips_extract_band(in, &t[ti], in->Bands - 1, "n", 1, NULL)) {
+    VIPS_UNREF(base);
+    return 1;
+  }
+
+  alpha = t[ti++];
+
+  if (
+      vips_black(&t[ti], in->Xsize, in->Ysize, "bands", color_bands, NULL) ||
+      vips_cast(t[ti], &t[ti + 1], in->BandFmt, NULL) ||
+      vips_copy(t[ti + 1], &t[ti + 2], "interpretation", in->Type, NULL)) {
+    VIPS_UNREF(base);
+    return 1;
+  }
+
+  black_color = t[ti + 2];
+  ti += 3;
+
+  if (
+      vips_black(&t[ti], in->Xsize, in->Ysize, "bands", 1, NULL) ||
+      vips_cast(t[ti], &t[ti + 1], in->BandFmt, NULL) ||
+      vips_bandjoin2(black_color, t[ti + 1], &t[ti + 2], NULL)) {
+    VIPS_UNREF(base);
+    return 1;
+  }
+
+  shadow = t[ti + 2];
+  ti += 3;
+
+  for (int layer = 0; layer < n_layers; layer++) {
+    VipsImage *layer_alpha = alpha;
+    VipsImage *layer_shadow = NULL;
+
+    if (blur_sigma[layer] > 0.0) {
+      if (vips_gaussblur(layer_alpha, &t[ti], blur_sigma[layer], NULL)) {
+        VIPS_UNREF(base);
+        return 1;
+      }
+
+      layer_alpha = t[ti++];
+    }
+
+    if (opacity[layer] < 1.0) {
+      if (vips_linear1(layer_alpha, &t[ti], opacity[layer], 0, NULL)) {
+        VIPS_UNREF(base);
+        return 1;
+      }
+
+      layer_alpha = t[ti++];
+    }
+
+    if (vips_bandjoin2(black_color, layer_alpha, &t[ti], NULL)) {
+      VIPS_UNREF(base);
+      return 1;
+    }
+
+    layer_shadow = t[ti++];
+
+    if (
+        vips_composite2(
+            shadow,
+            layer_shadow,
+            &t[ti],
+            VIPS_BLEND_MODE_OVER,
+            "x",
+            offset_x[layer],
+            "y",
+            offset_y[layer],
+            "compositing_space",
+            in->Type,
+            NULL)) {
+      VIPS_UNREF(base);
+      return 1;
+    }
+
+    shadow = t[ti++];
+  }
+
+  int res =
+      vips_composite2(shadow, in, &t[ti], VIPS_BLEND_MODE_OVER, "compositing_space", in->Type, NULL) ||
+      vips_cast(t[ti], out, vips_image_get_format(in), NULL);
+
+  VIPS_UNREF(base);
+
+  return res;
+}
+
+int
 vips_linecache_seq(VipsImage *in, VipsImage **out, int tile_height)
 {
   return vips_linecache(in, out, "tile_height", tile_height, "access", VIPS_ACCESS_SEQUENTIAL,
