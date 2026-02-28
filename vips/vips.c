@@ -1235,7 +1235,7 @@ vips_apply_drop_shadow(
             result,
             layer_shadow,
             &t[ti],
-            VIPS_BLEND_MODE_OVER,
+            VIPS_BLEND_MODE_DEST_OVER,
             "x",
             offset_x[layer],
             "y",

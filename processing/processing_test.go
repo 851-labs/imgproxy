@@ -999,9 +999,12 @@ func (s *ProcessingTestSuite) TestDropShadowAddsShadowBehindAlphaMask() {
 
 	withoutShadowPixel := withoutShadowOutput.NRGBAAt(16, 16)
 	withShadowPixel := withShadowOutput.NRGBAAt(16, 16)
+	withoutShadowForegroundPixel := withoutShadowOutput.NRGBAAt(12, 12)
+	withShadowForegroundPixel := withShadowOutput.NRGBAAt(12, 12)
 
 	s.Require().Equal(color.NRGBA{}, withoutShadowPixel)
 	s.Require().Equal(color.NRGBA{A: 255}, withShadowPixel)
+	s.Require().Equal(withoutShadowForegroundPixel, withShadowForegroundPixel)
 }
 
 func (s *ProcessingTestSuite) TestDropShadowInsetsToAvoidClippingOnOpaqueEdges() {
