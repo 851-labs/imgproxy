@@ -102,5 +102,8 @@ func dropShadowRequiredInsets(layers []DropShadowLayer) (int, int, int, int) {
 		requiredBottom += max(0.0, radius+float64(layer.YOffset))
 	}
 
-	return int(math.Ceil(requiredLeft)), int(math.Ceil(requiredRight)), int(math.Ceil(requiredTop)), int(math.Ceil(requiredBottom))
+	return int(math.Ceil(requiredLeft)),
+		int(math.Ceil(requiredRight)),
+		int(math.Ceil(requiredTop)),
+		int(math.Ceil(requiredBottom))
 }

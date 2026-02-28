@@ -1073,35 +1073,6 @@ func decodeImageToNRGBA(t *testing.T, encodedImageBytesReader io.Reader) *image.
 	return decodedImageNRGBA
 }
 
-func alphaBounds(imageNRGBA *image.NRGBA) (int, int, int, int) {
-	width := imageNRGBA.Bounds().Dx()
-	height := imageNRGBA.Bounds().Dy()
-
-	minX := width
-	minY := height
-	maxX := -1
-	maxY := -1
-
-	for y := range height {
-		for x := range width {
-			if imageNRGBA.NRGBAAt(x, y).A == 0 {
-				continue
-			}
-
-			minX = min(minX, x)
-			minY = min(minY, y)
-			maxX = max(maxX, x)
-			maxY = max(maxY, y)
-		}
-	}
-
-	if maxX < 0 || maxY < 0 {
-		return 0, 0, 0, 0
-	}
-
-	return minX, minY, maxX, maxY
-}
-
 func TestProcessing(t *testing.T) {
 	suite.Run(t, new(ProcessingTestSuite))
 }
