@@ -93,6 +93,9 @@ int vips_apply_drop_shadow(VipsImage *in, VipsImage **out, const int *offset_x, 
 
 int vips_alpha_bounds(VipsImage *in, int *left, int *top, int *width, int *height);
 
+int vips_export_nrgba_go(VipsImage *in, void **out_data, size_t *out_size, int *out_width, int *out_height);
+int vips_load_nrgba_go(VipsImage **out, const void *data, size_t size, int width, int height);
+
 int vips_linecache_seq(VipsImage *in, VipsImage **out, int tile_height);
 
 int vips_arrayjoin_go(VipsImage **in, VipsImage **out, int n);

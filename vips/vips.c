@@ -1284,6 +1284,117 @@ vips_alpha_bounds(VipsImage *in, int *left, int *top, int *width, int *height)
 }
 
 int
+vips_export_nrgba_go(VipsImage *in, void **out_data, size_t *out_size, int *out_width, int *out_height)
+{
+  *out_data = NULL;
+  *out_size = 0;
+  *out_width = 0;
+  *out_height = 0;
+
+  VipsImage *base = vips_image_new();
+  VipsImage **t = (VipsImage **) vips_object_local_array(VIPS_OBJECT(base), 4);
+
+  int ti = 0;
+  VipsImage *result = in;
+
+  if (result->Type != VIPS_INTERPRETATION_sRGB) {
+    if (vips_colourspace(result, &t[ti], VIPS_INTERPRETATION_sRGB, NULL)) {
+      VIPS_UNREF(base);
+      return 1;
+    }
+
+    result = t[ti++];
+  }
+
+  if (result->BandFmt != VIPS_FORMAT_UCHAR) {
+    if (vips_cast_uchar(result, &t[ti], NULL)) {
+      VIPS_UNREF(base);
+      return 1;
+    }
+
+    result = t[ti++];
+  }
+
+  if (!vips_image_hasalpha(result)) {
+    if (vips_addalpha(result, &t[ti], NULL)) {
+      VIPS_UNREF(base);
+      return 1;
+    }
+
+    result = t[ti++];
+  }
+
+  if (result->Bands > 4) {
+    if (vips_extract_band(result, &t[ti], 0, "n", 4, NULL)) {
+      VIPS_UNREF(base);
+      return 1;
+    }
+
+    result = t[ti++];
+  }
+
+  if (result->Bands != 4) {
+    vips_error("vips_export_nrgba_go", "image should have 4 bands after conversion");
+    VIPS_UNREF(base);
+    return 1;
+  }
+
+  void *buffer = vips_image_write_to_memory(result, out_size);
+  if (!buffer) {
+    VIPS_UNREF(base);
+    return 1;
+  }
+
+  *out_data = buffer;
+  *out_width = result->Xsize;
+  *out_height = result->Ysize;
+
+  VIPS_UNREF(base);
+
+  return 0;
+}
+
+int
+vips_load_nrgba_go(VipsImage **out, const void *data, size_t size, int width, int height)
+{
+  if (width <= 0 || height <= 0) {
+    vips_error("vips_load_nrgba_go", "invalid image dimensions");
+    return 1;
+  }
+
+  size_t expected_size = (size_t) width;
+
+  if (expected_size > SIZE_MAX / (size_t) height) {
+    vips_error("vips_load_nrgba_go", "image dimensions are too large");
+    return 1;
+  }
+
+  expected_size *= (size_t) height;
+
+  if (expected_size > SIZE_MAX / 4) {
+    vips_error("vips_load_nrgba_go", "image dimensions are too large");
+    return 1;
+  }
+
+  expected_size *= 4;
+
+  if (size != expected_size) {
+    vips_error("vips_load_nrgba_go", "raw nrgba buffer size does not match dimensions");
+    return 1;
+  }
+
+  VipsImage *tmp = vips_image_new_from_memory_copy(data, size, width, height, 4, VIPS_FORMAT_UCHAR);
+  if (!tmp)
+    return 1;
+
+  int res = vips_copy(tmp, out, "interpretation", VIPS_INTERPRETATION_sRGB, NULL);
+
+  VIPS_UNREF(tmp);
+
+  return res;
+}
+
+int
 vips_linecache_seq(VipsImage *in, VipsImage **out, int tile_height)
 {
   return vips_linecache(in, out, "tile_height", tile_height, "access", VIPS_ACCESS_SEQUENTIAL,

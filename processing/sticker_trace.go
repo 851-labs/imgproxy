@@ -9,15 +9,10 @@ import (
 	"image/draw"
 	_ "image/jpeg"
 	"image/png"
-	"io"
 	"math"
 	"runtime"
 	"slices"
 	"sync"
-
-	"github.com/imgproxy/imgproxy/v3/imagedata"
-	"github.com/imgproxy/imgproxy/v3/imagetype"
-	"github.com/imgproxy/imgproxy/v3/options"
 )
 
 const (
@@ -64,24 +59,21 @@ func (p *Processor) stickerTrace(c *Context) error {
 		return nil
 	}
 
-	sourceImageData, err := c.Img.Save(imagetype.PNG, 100, options.New())
-	if err != nil {
-		return err
-	}
-	defer sourceImageData.Close()
-
-	sourceBytes, err := io.ReadAll(sourceImageData.Reader())
+	sourceData, width, height, err := c.Img.ExportNRGBA()
 	if err != nil {
 		return err
 	}
 
-	transformedBytes, err := transformStickerTraceImage(c.Ctx, sourceBytes)
+	transformedData, transformed, err := transformStickerTraceNRGBA(c.Ctx, sourceData, width, height)
 	if err != nil {
 		return err
 	}
 
-	transformedImageData := imagedata.NewFromBytesWithFormat(imagetype.PNG, transformedBytes)
-	return c.Img.Load(transformedImageData, 1.0, 0, 1)
+	if !transformed {
+		return nil
+	}
+
+	return c.Img.LoadNRGBA(transformedData, width, height)
 }
 
 func transformStickerTraceImage(ctx context.Context, fileBytes []byte) ([]byte, error) {
@@ -104,45 +96,15 @@ func transformStickerTraceImage(ctx context.Context, fileBytes []byte) ([]byte, 
 		return nil, err
 	}
 
-	sourceData := sourceImage.Pix
-	sourceMask := buildVisibleMask(sourceData, width, height)
-	sourceBounds, ok := getMaskBounds(sourceMask, width, height)
-	if !ok {
+	outputData, transformed, err := transformStickerTraceNRGBA(ctx, sourceImage.Pix, width, height)
+	if err != nil {
+		return nil, err
+	}
+
+	if !transformed {
 		return fileBytes, nil
 	}
 
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-
-	borderPixels := getBorderSize(width, height)
-	scaleFactor := getSafeScaleFactor(sourceBounds, width, height, borderPixels)
-	scaledData := scaleAndCenterImage(sourceData, width, height, sourceBounds, scaleFactor)
-
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-
-	scaledVisibleMask := buildVisibleMask(scaledData, width, height)
-	cleanedVisibleMask := removeTinyDetachedComponents(scaledVisibleMask, width, height)
-	cleanedColorData := removeColorSpeckles(scaledData, cleanedVisibleMask, width, height)
-	denoisedColorData := removeLocalColorOutliers(cleanedColorData, cleanedVisibleMask, width, height)
-	stickerBaseMask := fillStickerTraceGaps(cleanedVisibleMask, width, height, borderPixels)
-	stickerDistanceField := buildDistanceField(stickerBaseMask, width, height)
-	stickerCoreMask := buildStickerCoreMask(stickerDistanceField, borderPixels)
-	stickerFillMask := fillStickerTraceGaps(stickerCoreMask, width, height, borderPixels)
-
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-
-	outputData := composeStickerImage(
-		denoisedColorData,
-		cleanedVisibleMask,
-		stickerDistanceField,
-		stickerFillMask,
-		borderPixels,
-	)
 	outputImage := &image.NRGBA{
 		Pix:    outputData,
 		Stride: width * 4,
@@ -155,6 +117,84 @@ func transformStickerTraceImage(ctx context.Context, fileBytes []byte) ([]byte, 
 	}
 
 	return encoded.Bytes(), nil
+}
+
+func transformStickerTraceNRGBA(
+	ctx context.Context,
+	sourceData []uint8,
+	width int,
+	height int,
+) ([]uint8, bool, error) {
+	if width <= 0 || height <= 0 {
+		return nil, false, errors.New("could not read image dimensions")
+	}
+
+	if width > stickerTraceMaxSourceImageDimension || height > stickerTraceMaxSourceImageDimension {
+		return nil, false, fmt.Errorf(
+			"source image dimensions exceed %dx%d",
+			stickerTraceMaxSourceImageDimension,
+			stickerTraceMaxSourceImageDimension,
+		)
+	}
+
+	if width > stickerTraceMaxSourceImagePixels/height {
+		return nil, false, fmt.Errorf("source image exceeds %d pixels", stickerTraceMaxSourceImagePixels)
+	}
+
+	pixelCount := width * height
+	if pixelCount > stickerTraceMaxSourceImagePixels {
+		return nil, false, fmt.Errorf("source image exceeds %d pixels", stickerTraceMaxSourceImagePixels)
+	}
+
+	expectedSourceDataSize := width * height * 4
+	if len(sourceData) != expectedSourceDataSize {
+		return nil, false, fmt.Errorf(
+			"raw nrgba buffer size %d does not match expected dimensions size %d",
+			len(sourceData),
+			expectedSourceDataSize,
+		)
+	}
+
+	sourceMask := buildVisibleMask(sourceData, width, height)
+	sourceBounds, ok := getMaskBounds(sourceMask, width, height)
+	if !ok {
+		return nil, false, nil
+	}
+
+	if err := ctx.Err(); err != nil {
+		return nil, false, err
+	}
+
+	borderPixels := getBorderSize(width, height)
+	scaleFactor := getSafeScaleFactor(sourceBounds, width, height, borderPixels)
+	scaledData := scaleAndCenterImage(sourceData, width, height, sourceBounds, scaleFactor)
+
+	if err := ctx.Err(); err != nil {
+		return nil, false, err
+	}
+
+	scaledVisibleMask := buildVisibleMask(scaledData, width, height)
+	cleanedVisibleMask := removeTinyDetachedComponents(scaledVisibleMask, width, height)
+	cleanedColorData := removeColorSpeckles(scaledData, cleanedVisibleMask, width, height)
+	denoisedColorData := removeLocalColorOutliers(cleanedColorData, cleanedVisibleMask, width, height)
+	stickerBaseMask := fillStickerTraceGaps(cleanedVisibleMask, width, height, borderPixels)
+	stickerDistanceField := buildDistanceField(stickerBaseMask, width, height)
+	stickerCoreMask := buildStickerCoreMask(stickerDistanceField, borderPixels)
+	stickerFillMask := fillStickerTraceGaps(stickerCoreMask, width, height, borderPixels)
+
+	if err := ctx.Err(); err != nil {
+		return nil, false, err
+	}
+
+	outputData := composeStickerImage(
+		denoisedColorData,
+		cleanedVisibleMask,
+		stickerDistanceField,
+		stickerFillMask,
+		borderPixels,
+	)
+
+	return outputData, true, nil
 }
 
 func decodeStickerTraceImage(fileBytes []byte) (*image.NRGBA, error) {

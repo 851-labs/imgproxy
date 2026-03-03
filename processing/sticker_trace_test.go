@@ -5,6 +5,7 @@ import (
 	"context"
 	"image"
 	"image/color"
+	"image/draw"
 	"image/png"
 	"testing"
 )
@@ -103,4 +104,92 @@ func TestTransformStickerTraceImageRespectsCanceledContext(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected context cancellation error")
 	}
+}
+
+func TestTransformStickerTraceNRGBAReturnsUnchangedWhenFullyTransparent(t *testing.T) {
+	transparentImage := image.NewNRGBA(image.Rect(0, 0, 4, 4))
+
+	transformedPixels, transformed, err := transformStickerTraceNRGBA(
+		context.Background(),
+		transparentImage.Pix,
+		transparentImage.Bounds().Dx(),
+		transparentImage.Bounds().Dy(),
+	)
+	if err != nil {
+		t.Fatalf("transform sticker trace nrgba: %v", err)
+	}
+
+	if transformed {
+		t.Fatal("expected transparent image to skip raw nrgba sticker trace")
+	}
+
+	if transformedPixels != nil {
+		t.Fatal("expected transformed pixels to be nil when sticker trace is skipped")
+	}
+}
+
+func TestTransformStickerTraceNRGBAMatchesPNGPath(t *testing.T) {
+	sourceImage := image.NewNRGBA(image.Rect(0, 0, 96, 96))
+
+	for y := 16; y < 80; y++ {
+		for x := 16; x < 80; x++ {
+			sourceImage.SetNRGBA(x, y, color.NRGBA{R: 226, G: 47, B: 47, A: 255})
+		}
+	}
+
+	for y := 28; y < 68; y++ {
+		for x := 28; x < 68; x++ {
+			sourceImage.SetNRGBA(x, y, color.NRGBA{})
+		}
+	}
+
+	for i := range 96 {
+		sourceImage.SetNRGBA(8+i/2, 8+i, color.NRGBA{R: 47, G: 150, B: 226, A: 255})
+	}
+
+	var encoded bytes.Buffer
+	if err := png.Encode(&encoded, sourceImage); err != nil {
+		t.Fatalf("encode png: %v", err)
+	}
+
+	pngOutputBytes, err := transformStickerTraceImage(context.Background(), encoded.Bytes())
+	if err != nil {
+		t.Fatalf("transform sticker trace png path: %v", err)
+	}
+
+	decodedOutput, err := decodeTestNRGBA(pngOutputBytes)
+	if err != nil {
+		t.Fatalf("decode transformed png output: %v", err)
+	}
+
+	rawOutputPixels, transformed, err := transformStickerTraceNRGBA(
+		context.Background(),
+		sourceImage.Pix,
+		sourceImage.Bounds().Dx(),
+		sourceImage.Bounds().Dy(),
+	)
+	if err != nil {
+		t.Fatalf("transform sticker trace raw nrgba path: %v", err)
+	}
+
+	if !transformed {
+		t.Fatal("expected raw nrgba sticker trace path to transform this test image")
+	}
+
+	if !bytes.Equal(rawOutputPixels, decodedOutput.Pix) {
+		t.Fatal("expected raw nrgba sticker trace output to match png wrapper output")
+	}
+}
+
+func decodeTestNRGBA(imageBytes []byte) (*image.NRGBA, error) {
+	decodedImage, _, err := image.Decode(bytes.NewReader(imageBytes))
+	if err != nil {
+		return nil, err
+	}
+
+	bounds := decodedImage.Bounds()
+	output := image.NewNRGBA(image.Rect(0, 0, bounds.Dx(), bounds.Dy()))
+	draw.Draw(output, output.Bounds(), decodedImage, bounds.Min, draw.Src)
+
+	return output, nil
 }

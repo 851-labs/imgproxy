@@ -333,6 +333,59 @@ func (img *Image) LoadThumbnail(imgdata imagedata.ImageData) error {
 	return nil
 }
 
+func (img *Image) ExportNRGBA() ([]byte, int, int, error) {
+	var (
+		dataPtr unsafe.Pointer
+		dataLen C.size_t
+		width   C.int
+		height  C.int
+	)
+
+	if C.vips_export_nrgba_go(img.VipsImage, &dataPtr, &dataLen, &width, &height) != 0 {
+		return nil, 0, 0, Error()
+	}
+
+	if dataPtr == nil {
+		return nil, 0, 0, newVipsError("can't export nrgba data")
+	}
+
+	defer C.g_free_go(&dataPtr)
+
+	rawData := unsafe.Slice((*byte)(dataPtr), int(dataLen))
+	outData := append([]byte(nil), rawData...)
+
+	return outData, int(width), int(height), nil
+}
+
+func (img *Image) LoadNRGBA(data []byte, width int, height int) error {
+	if width <= 0 || height <= 0 {
+		return newVipsError("invalid raw nrgba dimensions")
+	}
+
+	expectedSize := uint64(width) * uint64(height) * 4
+	if expectedSize != uint64(len(data)) {
+		return newVipsError("raw nrgba buffer size does not match dimensions")
+	}
+
+	var tmp *C.VipsImage
+
+	if C.vips_load_nrgba_go(
+		&tmp,
+		unsafe.Pointer(unsafe.SliceData(data)),
+		C.size_t(len(data)),
+		C.int(width),
+		C.int(height),
+	) != 0 {
+		return Error()
+	}
+
+	runtime.KeepAlive(data)
+
+	img.swapAndUnref(tmp)
+
+	return nil
+}
+
 func (img *Image) Save(
 	imgtype imagetype.Type,
 	quality int,
