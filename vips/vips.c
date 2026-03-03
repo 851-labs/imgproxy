@@ -1150,7 +1150,7 @@ vips_apply_drop_shadow(
     const double *opacity,
     int n_layers)
 {
-  static const double drop_shadow_min_ampl = 0.2;
+  static const double drop_shadow_min_ampl = 0.1;
 
   if (n_layers <= 0 || !vips_image_hasalpha(in))
     return vips_copy(in, out, NULL);
