@@ -879,7 +879,7 @@ func (s *ProcessingTestSuite) TestStickerTraceMatchesTwoPassTraceThenResize() {
 
 	sourceImageBytes := sourceImageBuffer.Bytes()
 
-	tracedImageBytes, err := transformStickerTraceImage(s.T().Context(), sourceImageBytes)
+	tracedImageBytes, err := transformStickerTraceImageForTest(s.T().Context(), sourceImageBytes)
 	s.Require().NoError(err)
 
 	sourceImageData := imagedata.NewFromBytesWithFormat(imagetype.PNG, sourceImageBytes)

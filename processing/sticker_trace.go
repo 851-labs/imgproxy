@@ -1,14 +1,9 @@
 package processing
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"image"
-	"image/draw"
-	_ "image/jpeg"
-	"image/png"
 	"math"
 	"runtime"
 	"slices"
@@ -74,49 +69,6 @@ func (p *Processor) stickerTrace(c *Context) error {
 	}
 
 	return c.Img.LoadNRGBA(transformedData, width, height)
-}
-
-func transformStickerTraceImage(ctx context.Context, fileBytes []byte) ([]byte, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-
-	sourceImage, err := decodeStickerTraceImage(fileBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	width := sourceImage.Bounds().Dx()
-	height := sourceImage.Bounds().Dy()
-	if width <= 0 || height <= 0 {
-		return nil, errors.New("could not read image dimensions")
-	}
-
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-
-	outputData, transformed, err := transformStickerTraceNRGBA(ctx, sourceImage.Pix, width, height)
-	if err != nil {
-		return nil, err
-	}
-
-	if !transformed {
-		return fileBytes, nil
-	}
-
-	outputImage := &image.NRGBA{
-		Pix:    outputData,
-		Stride: width * 4,
-		Rect:   image.Rect(0, 0, width, height),
-	}
-
-	var encoded bytes.Buffer
-	if err := png.Encode(&encoded, outputImage); err != nil {
-		return nil, fmt.Errorf("encode png: %w", err)
-	}
-
-	return encoded.Bytes(), nil
 }
 
 func transformStickerTraceNRGBA(
@@ -193,42 +145,6 @@ func transformStickerTraceNRGBA(
 	)
 
 	return outputData, true, nil
-}
-
-func decodeStickerTraceImage(fileBytes []byte) (*image.NRGBA, error) {
-	decoded, _, err := image.Decode(bytes.NewReader(fileBytes))
-	if err != nil {
-		return nil, fmt.Errorf("decode image: %w", err)
-	}
-
-	bounds := decoded.Bounds()
-	width := bounds.Dx()
-	height := bounds.Dy()
-	if width <= 0 || height <= 0 {
-		return nil, errors.New("invalid source image dimensions")
-	}
-
-	if width > stickerTraceMaxSourceImageDimension || height > stickerTraceMaxSourceImageDimension {
-		return nil, fmt.Errorf(
-			"source image dimensions exceed %dx%d",
-			stickerTraceMaxSourceImageDimension,
-			stickerTraceMaxSourceImageDimension,
-		)
-	}
-
-	if width > stickerTraceMaxSourceImagePixels/height {
-		return nil, fmt.Errorf("source image exceeds %d pixels", stickerTraceMaxSourceImagePixels)
-	}
-
-	pixelCount := width * height
-	if pixelCount > stickerTraceMaxSourceImagePixels {
-		return nil, fmt.Errorf("source image exceeds %d pixels", stickerTraceMaxSourceImagePixels)
-	}
-
-	output := image.NewNRGBA(image.Rect(0, 0, bounds.Dx(), bounds.Dy()))
-	draw.Draw(output, output.Bounds(), decoded, bounds.Min, draw.Src)
-
-	return output, nil
 }
 
 func getBorderSize(width int, height int) int {

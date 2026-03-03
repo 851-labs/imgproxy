@@ -27,7 +27,7 @@ func BenchmarkStickerTraceTransformPNG(b *testing.B) {
 	b.ResetTimer()
 
 	for b.Loop() {
-		transformedBytes, err := transformStickerTraceImage(ctx, sourceBytes)
+		transformedBytes, err := transformStickerTraceImageForTest(ctx, sourceBytes)
 		if err != nil {
 			b.Fatalf("transform sticker trace png path: %v", err)
 		}

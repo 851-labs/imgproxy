@@ -78,7 +78,7 @@ func TestTransformStickerTraceImageReturnsOriginalWhenFullyTransparent(t *testin
 	}
 
 	originalBytes := imageBuffer.Bytes()
-	transformedBytes, err := transformStickerTraceImage(context.Background(), originalBytes)
+	transformedBytes, err := transformStickerTraceImageForTest(context.Background(), originalBytes)
 	if err != nil {
 		t.Fatalf("transform sticker trace: %v", err)
 	}
@@ -100,7 +100,7 @@ func TestTransformStickerTraceImageRespectsCanceledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := transformStickerTraceImage(ctx, imageBuffer.Bytes())
+	_, err := transformStickerTraceImageForTest(ctx, imageBuffer.Bytes())
 	if err == nil {
 		t.Fatal("expected context cancellation error")
 	}
@@ -152,7 +152,7 @@ func TestTransformStickerTraceNRGBAMatchesPNGPath(t *testing.T) {
 		t.Fatalf("encode png: %v", err)
 	}
 
-	pngOutputBytes, err := transformStickerTraceImage(context.Background(), encoded.Bytes())
+	pngOutputBytes, err := transformStickerTraceImageForTest(context.Background(), encoded.Bytes())
 	if err != nil {
 		t.Fatalf("transform sticker trace png path: %v", err)
 	}
