@@ -175,8 +175,6 @@ func transformStickerTraceNRGBA(
 
 	scaledVisibleMask := buildVisibleMask(scaledData, width, height)
 	cleanedVisibleMask := removeTinyDetachedComponents(scaledVisibleMask, width, height)
-	cleanedColorData := removeColorSpeckles(scaledData, cleanedVisibleMask, width, height)
-	denoisedColorData := removeLocalColorOutliers(cleanedColorData, cleanedVisibleMask, width, height)
 	stickerBaseMask := fillStickerTraceGaps(cleanedVisibleMask, width, height, borderPixels)
 	stickerDistanceField := buildDistanceField(stickerBaseMask, width, height)
 	stickerCoreMask := buildStickerCoreMask(stickerDistanceField, borderPixels)
@@ -187,7 +185,7 @@ func transformStickerTraceNRGBA(
 	}
 
 	outputData := composeStickerImage(
-		denoisedColorData,
+		scaledData,
 		cleanedVisibleMask,
 		stickerDistanceField,
 		stickerFillMask,
