@@ -955,6 +955,53 @@ func (s *ProcessingTestSuite) TestDropShadowNoOpWithoutAlpha() {
 	}
 }
 
+func (s *ProcessingTestSuite) TestDropShadowZeroOpacityNoOp() {
+	alphaImage := image.NewNRGBA(image.Rect(0, 0, 24, 24))
+
+	for y := range 24 {
+		for x := range 24 {
+			alphaImage.SetNRGBA(x, y, color.NRGBA{R: 226, G: 47, B: 47, A: 255})
+		}
+	}
+
+	var encoded bytes.Buffer
+	err := png.Encode(&encoded, alphaImage)
+	s.Require().NoError(err)
+
+	sourceBytes := encoded.Bytes()
+
+	withoutShadowImageData := imagedata.NewFromBytesWithFormat(imagetype.PNG, sourceBytes)
+	defer withoutShadowImageData.Close()
+
+	withShadowImageData := imagedata.NewFromBytesWithFormat(imagetype.PNG, sourceBytes)
+	defer withShadowImageData.Close()
+
+	withoutShadowOptions := options.New()
+	withoutShadowOptions.Set(keys.Format, imagetype.PNG)
+
+	withShadowOptions := options.New()
+	withShadowOptions.Set(keys.Format, imagetype.PNG)
+	withShadowOptions.Set(
+		keys.DropShadow,
+		[]DropShadowLayer{
+			{XOffset: 0, YOffset: 1, Blur: 1, Opacity: 0},
+			{XOffset: 0, YOffset: 1, Blur: 2, Opacity: 0},
+		},
+	)
+
+	withoutShadowResult, err := s.Processor().ProcessImage(s.T().Context(), withoutShadowImageData, withoutShadowOptions)
+	s.Require().NoError(err)
+	defer withoutShadowResult.OutData.Close()
+
+	withShadowResult, err := s.Processor().ProcessImage(s.T().Context(), withShadowImageData, withShadowOptions)
+	s.Require().NoError(err)
+	defer withShadowResult.OutData.Close()
+
+	if !testutil.ReadersEqual(s.T(), withoutShadowResult.OutData.Reader(), withShadowResult.OutData.Reader()) {
+		s.T().Fatal("expected zero-opacity drop_shadow layers to be a no-op")
+	}
+}
+
 func (s *ProcessingTestSuite) TestDropShadowAddsShadowBehindAlphaMask() {
 	alphaImage := image.NewNRGBA(image.Rect(0, 0, 24, 24))
 
@@ -1059,6 +1106,66 @@ func (s *ProcessingTestSuite) TestDropShadowInsetsToAvoidClippingOnOpaqueEdges()
 
 	s.Require().GreaterOrEqual(maxForegroundY, 0)
 	s.Require().Less(maxForegroundY, output.Bounds().Dy()-1)
+}
+
+func (s *ProcessingTestSuite) TestDropShadowCapsInsetShrinkForTinyImages() {
+	alphaImage := image.NewNRGBA(image.Rect(0, 0, 96, 96))
+
+	for y := range 96 {
+		for x := 8; x < 88; x++ {
+			alphaImage.SetNRGBA(x, y, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
+		}
+	}
+
+	var encoded bytes.Buffer
+	err := png.Encode(&encoded, alphaImage)
+	s.Require().NoError(err)
+
+	imageData := imagedata.NewFromBytesWithFormat(imagetype.PNG, encoded.Bytes())
+	defer imageData.Close()
+
+	processingOptions := options.New()
+	processingOptions.Set(keys.Format, imagetype.PNG)
+	processingOptions.Set(
+		keys.DropShadow,
+		[]DropShadowLayer{
+			{XOffset: 0, YOffset: 3, Blur: 3, Opacity: 0.26},
+			{XOffset: 0, YOffset: 3, Blur: 6, Opacity: 0.18},
+		},
+	)
+
+	result, err := s.Processor().ProcessImage(s.T().Context(), imageData, processingOptions)
+	s.Require().NoError(err)
+	defer result.OutData.Close()
+
+	output := decodeImageToNRGBA(s.T(), result.OutData.Reader())
+
+	minForegroundY := output.Bounds().Dy()
+	maxForegroundY := -1
+
+	for y := range output.Bounds().Dy() {
+		for x := range output.Bounds().Dx() {
+			pixel := output.NRGBAAt(x, y)
+
+			if pixel.A < 240 {
+				continue
+			}
+
+			if pixel.R < 240 || pixel.G < 240 || pixel.B < 240 {
+				continue
+			}
+
+			minForegroundY = min(minForegroundY, y)
+			maxForegroundY = max(maxForegroundY, y)
+		}
+	}
+
+	s.Require().GreaterOrEqual(maxForegroundY, 0)
+
+	foregroundHeight := maxForegroundY - minForegroundY + 1
+	minExpectedHeight := int(float64(alphaImage.Bounds().Dy()) * dropShadowMinimumScale)
+
+	s.Require().GreaterOrEqual(foregroundHeight, minExpectedHeight)
 }
 
 func decodeImageToNRGBA(t *testing.T, encodedImageBytesReader io.Reader) *image.NRGBA {
