@@ -1,18 +1,37 @@
 package processing
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type cancelAfterErrContext struct {
-	context.Context
 	cancelOnErrCall int
 	errCallCount    int
+	deadline        func() (time.Time, bool)
+	done            <-chan struct{}
+	value           func(any) any
 }
 
 func newCancelAfterErrContext(ctx context.Context, cancelOnErrCall int) *cancelAfterErrContext {
 	return &cancelAfterErrContext{
-		Context:         ctx,
 		cancelOnErrCall: cancelOnErrCall,
+		deadline: func() (time.Time, bool) {
+			return ctx.Deadline()
+		},
+		done: ctx.Done(),
+		value: func(key any) any {
+			return ctx.Value(key)
+		},
 	}
+}
+
+func (c *cancelAfterErrContext) Deadline() (deadline time.Time, ok bool) {
+	return c.deadline()
+}
+
+func (c *cancelAfterErrContext) Done() <-chan struct{} {
+	return c.done
 }
 
 func (c *cancelAfterErrContext) Err() error {
@@ -22,4 +41,8 @@ func (c *cancelAfterErrContext) Err() error {
 	}
 
 	return nil
+}
+
+func (c *cancelAfterErrContext) Value(key any) any {
+	return c.value(key)
 }

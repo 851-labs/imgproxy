@@ -59,6 +59,7 @@ jobs:
         uses: golangci/golangci-lint-action@v7
         with:
           version: v2.7.2
+          install-mode: goinstall
           args: --timeout 10m0s
         env:
           PKG_CONFIG_LIBDIR: /opt/imgproxy/lib/pkgconfig

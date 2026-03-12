@@ -915,35 +915,6 @@ func clampColor(value float64) uint8 {
 	return uint8(math.Round(value))
 }
 
-func parallelFor(total int, run func(start int, end int)) {
-	if total <= 0 {
-		return
-	}
-
-	workerCount := runtime.GOMAXPROCS(0)
-	if workerCount <= 1 || total < 16384 {
-		run(0, total)
-		return
-	}
-
-	if workerCount > total {
-		workerCount = total
-	}
-
-	chunkSize := (total + workerCount - 1) / workerCount
-	var waitGroup sync.WaitGroup
-	for start := 0; start < total; start += chunkSize {
-		end := min(total, start+chunkSize)
-		waitGroup.Add(1)
-		go func(from int, to int) {
-			defer waitGroup.Done()
-			run(from, to)
-		}(start, end)
-	}
-
-	waitGroup.Wait()
-}
-
 func parallelForContext(ctx context.Context, total int, run func(start int, end int) error) error {
 	if total <= 0 {
 		return nil
