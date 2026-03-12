@@ -76,3 +76,33 @@ func TestTransformBlurhashImageRespectsCanceledContext(t *testing.T) {
 		t.Fatalf("expected context canceled error, got %v", err)
 	}
 }
+
+func TestTransformBlurhashImageRespectsCanceledContextDuringTransform(t *testing.T) {
+	source := image.NewNRGBA(image.Rect(0, 0, 16, 12))
+
+	for y := range 12 {
+		for x := range 16 {
+			source.Set(x, y, color.NRGBA{R: uint8(x * 12), G: uint8(y * 16), B: 180, A: 255})
+		}
+	}
+
+	var sourceBuffer bytes.Buffer
+	if err := png.Encode(&sourceBuffer, source); err != nil {
+		t.Fatalf("encode source png: %v", err)
+	}
+
+	ctx := newCancelAfterErrContext(context.Background(), 5)
+
+	_, err := transformBlurhashImage(ctx, sourceBuffer.Bytes(), blurhashImageTransformOptions{
+		TargetWidth:  128,
+		TargetHeight: 128,
+		XComponents:  4,
+		YComponents:  3,
+		Punch:        1,
+		ResolutionX:  32,
+		ResolutionY:  32,
+	})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context canceled error, got %v", err)
+	}
+}

@@ -3,6 +3,7 @@ package processing
 import (
 	"bytes"
 	"context"
+	"errors"
 	"image"
 	"image/color"
 	"image/draw"
@@ -35,12 +36,18 @@ func TestFillStickerTraceGapsClosesNarrowChannel(t *testing.T) {
 		mask[y*width+4] = 0
 	}
 
-	withoutGapClosing := fillInternalHoles(mask, width, height)
+	withoutGapClosing, err := fillInternalHoles(context.Background(), mask, width, height)
+	if err != nil {
+		t.Fatalf("fill internal holes: %v", err)
+	}
 	if withoutGapClosing[4*width+4] != 0 {
 		t.Fatal("expected channel-connected pixel to remain unfilled without gap closing")
 	}
 
-	withGapClosing := fillStickerTraceGaps(mask, width, height, 12)
+	withGapClosing, err := fillStickerTraceGaps(context.Background(), mask, width, height, 12)
+	if err != nil {
+		t.Fatalf("fill sticker trace gaps: %v", err)
+	}
 	if withGapClosing[4*width+4] != 1 {
 		t.Fatal("expected narrow channel to be closed and interior to be filled")
 	}
@@ -63,7 +70,10 @@ func TestFillStickerTraceGapsKeepsWideChannelOpen(t *testing.T) {
 		}
 	}
 
-	withGapClosing := fillStickerTraceGaps(mask, width, height, 6)
+	withGapClosing, err := fillStickerTraceGaps(context.Background(), mask, width, height, 6)
+	if err != nil {
+		t.Fatalf("fill sticker trace gaps: %v", err)
+	}
 	if withGapClosing[6*width+6] != 0 {
 		t.Fatal("expected wide channel to remain open after gap closing")
 	}
@@ -125,6 +135,21 @@ func TestTransformStickerTraceNRGBAReturnsUnchangedWhenFullyTransparent(t *testi
 
 	if transformedPixels != nil {
 		t.Fatal("expected transformed pixels to be nil when sticker trace is skipped")
+	}
+}
+
+func TestTransformStickerTraceNRGBARespectsCanceledContextDuringTransform(t *testing.T) {
+	sourceImage := newBenchmarkStickerTraceImage(128, 128)
+	ctx := newCancelAfterErrContext(context.Background(), 6)
+
+	_, _, err := transformStickerTraceNRGBA(
+		ctx,
+		sourceImage.Pix,
+		sourceImage.Bounds().Dx(),
+		sourceImage.Bounds().Dy(),
+	)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context canceled error, got %v", err)
 	}
 }
 

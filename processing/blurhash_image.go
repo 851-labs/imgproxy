@@ -45,8 +45,16 @@ func (p *Processor) blurhashImage(c *Context) error {
 	}
 	defer sourceImageData.Close()
 
+	if err := c.Ctx.Err(); err != nil {
+		return err
+	}
+
 	sourceBytes, err := io.ReadAll(sourceImageData.Reader())
 	if err != nil {
+		return err
+	}
+
+	if err := c.Ctx.Err(); err != nil {
 		return err
 	}
 
@@ -90,9 +98,17 @@ func transformBlurhashImage(
 		return nil, fmt.Errorf("encode blurhash: %w", err)
 	}
 
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
 	decodedBlurhash := image.NewNRGBA(image.Rect(0, 0, transformOptions.ResolutionX, transformOptions.ResolutionY))
 	if err := blurhash.DecodeDraw(decodedBlurhash, encodedBlurhash, transformOptions.Punch); err != nil {
 		return nil, fmt.Errorf("decode blurhash: %w", err)
+	}
+
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 
 	scaledImage, err := resizeBlurhashImage(
@@ -108,6 +124,10 @@ func transformBlurhashImage(
 	var encoded bytes.Buffer
 	if err := png.Encode(&encoded, scaledImage); err != nil {
 		return nil, fmt.Errorf("encode png: %w", err)
+	}
+
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 
 	return encoded.Bytes(), nil
@@ -133,7 +153,7 @@ func resizeBlurhashImage(
 	target := image.NewNRGBA(image.Rect(0, 0, targetWidth, targetHeight))
 
 	for y := range targetHeight {
-		if y%64 == 0 {
+		if y%16 == 0 {
 			if err := ctx.Err(); err != nil {
 				return nil, err
 			}
