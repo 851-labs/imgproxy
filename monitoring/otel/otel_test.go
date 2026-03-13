@@ -3,6 +3,7 @@ package otel
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
@@ -57,11 +58,11 @@ func TestStartRequestAddsFlyAttributesToRootSpan(t *testing.T) {
 		tracer:         provider.Tracer("imgproxy-test"),
 	}
 
-	request := httptest.NewRequest("GET", "https://imgproxy.attic.sh/insecure/plain/example.png", nil)
+	request := httptest.NewRequest(http.MethodGet, "https://imgproxy.attic.sh/insecure/plain/example.png", nil)
 	recorder := httptest.NewRecorder()
 
 	ctx, cancel, responseWriter := o.StartRequest(context.Background(), recorder, request)
-	responseWriter.WriteHeader(200)
+	responseWriter.WriteHeader(http.StatusOK)
 	cancel()
 
 	spans := exporter.GetSpans()
