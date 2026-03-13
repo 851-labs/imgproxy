@@ -44,10 +44,16 @@ const (
 
 	// defaultOtelServiceName is the default service name for OpenTelemetry if none is set
 	defaultOtelServiceName = "imgproxy"
+
+	flyMachineIDEnv = "FLY_MACHINE_ID"
+	flyAppNameEnv   = "FLY_APP_NAME"
+	flyRegionEnv    = "FLY_REGION"
 )
 
 // hasSpanCtxKey is a context key to mark that there is a span in the context
 type hasSpanCtxKey struct{}
+
+var hostnameFunc = os.Hostname
 
 // errorHandler is an implementation of the OpenTelemetry error handler interface
 type errorHandler struct{}
@@ -107,11 +113,14 @@ func New(config *Config, stats *stats.Stats) (*Otel, error) {
 		os.Setenv(OTEL_SERVICE_NAME.Name, defaultOtelServiceName)
 	}
 
+	resourceAttrs := append(
+		[]attribute.KeyValue{semconv.ServiceVersion(version.Version)},
+		flyAttributes()...,
+	)
+
 	res, _ := resource.Merge(
 		resource.Default(),
-		resource.NewSchemaless(
-			semconv.ServiceVersion(version.Version),
-		),
+		resource.NewSchemaless(resourceAttrs...),
 	)
 
 	awsRes, _ := resource.Detect(
@@ -236,6 +245,7 @@ func (o *Otel) StartRequest(
 		trace.WithSpanKind(trace.SpanKindServer),
 		trace.WithAttributes(httpconv.ServerRequest(server, r)...),
 		trace.WithAttributes(semconv.HTTPURL(r.RequestURI)),
+		trace.WithAttributes(flyAttributes()...),
 	)
 	ctx = context.WithValue(ctx, hasSpanCtxKey{}, struct{}{})
 
@@ -287,6 +297,28 @@ func setMetadata(span trace.Span, key string, value any) {
 		// but it's pretty complex and not really needed for now
 		span.SetAttributes(attribute.String(key, fmt.Sprintf("%v", value)))
 	}
+}
+
+func flyAttributes() []attribute.KeyValue {
+	attrs := make([]attribute.KeyValue, 0, 4)
+
+	if machineID := os.Getenv(flyMachineIDEnv); len(machineID) > 0 {
+		attrs = append(attrs, attribute.String("fly.machine.id", machineID))
+	}
+
+	if appName := os.Getenv(flyAppNameEnv); len(appName) > 0 {
+		attrs = append(attrs, attribute.String("fly.app.name", appName))
+	}
+
+	if region := os.Getenv(flyRegionEnv); len(region) > 0 {
+		attrs = append(attrs, attribute.String("fly.region", region))
+	}
+
+	if hostname, err := hostnameFunc(); err == nil && len(hostname) > 0 {
+		attrs = append(attrs, attribute.String("fly.machine.hostname", hostname))
+	}
+
+	return attrs
 }
 
 // SetMetadata sets metadata for the current span
