@@ -130,6 +130,7 @@ For any new processing flag, complete all of:
 
 Before PR:
 
+- Run the relevant local CI checks before pushing shared branches or opening a PR. Use the narrowest checks that cover your changes, and do not rely on GitHub Actions as the first verification step.
 - Run `make fmt`
 - Run `make lint-go`
 - Run `make test` (or at least affected package tests in base container)
