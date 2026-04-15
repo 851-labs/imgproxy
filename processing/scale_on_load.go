@@ -14,10 +14,6 @@ func (p *Processor) canScaleOnLoad(c *Context, shrink float64) bool {
 		return false
 	}
 
-	if c.PO.StickerTrace() {
-		return false
-	}
-
 	if c.ImgData.Format().IsVector() {
 		return true
 	}

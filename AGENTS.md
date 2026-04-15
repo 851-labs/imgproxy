@@ -8,7 +8,6 @@ Guidance for AI/code agents working in this imgproxy fork.
 - This fork's active work is based on `upstream/version/4` (not `upstream/master`).
 - For feature work in this fork, compare and PR against `version/4` to avoid huge unrelated diffs.
 - Current custom fork features include:
-  - `sticker_trace` (`st`)
   - `blurhash_image` (`bhi`)
 
 ## Quick Start Commands

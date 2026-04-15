@@ -71,10 +71,6 @@ func (p *Parser) applyURLOption(
 		return p.applySharpenOption(ctx, o, args)
 	case "pixelate", "pix":
 		return p.applyPixelateOption(ctx, o, args)
-	case "sticker_trace", "st":
-		return p.applyStickerTraceOption(ctx, o, args)
-	case "drop_shadow", "ds":
-		return p.applyDropShadowOption(ctx, o, args)
 	case "blurhash_image", "bhi":
 		return p.applyBlurhashImageOption(ctx, o, args)
 	case "watermark", "wm":
