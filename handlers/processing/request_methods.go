@@ -277,11 +277,7 @@ func (r *request) wrapDownloadingErr(originalErr error) errctx.Error {
 		return nil
 	}
 
-	var opts []errctx.Option
-	// we report this error only if enabled
-	if r.config.ReportDownloadingErrors {
-		opts = []errctx.Option{errctx.WithShouldReport(true)}
-	}
-
-	return errctx.WrapWithStackSkip(originalErr, 1, opts...)
+	return errctx.WrapWithStackSkip(
+		originalErr, 1, errctx.WithShouldReport(r.config.ReportDownloadingErrors),
+	)
 }
