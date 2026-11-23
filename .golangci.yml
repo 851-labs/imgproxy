@@ -7,6 +7,7 @@ linters:
     - err113 # we are OK with untyped errors
     - exhaustive # this is not Rust yet
     - exhaustruct # we often use partial struct literals
+    - exhaustruct_v5 # successor of exhaustruct
     - gocritic # mostly false positives
     - godot # too noisy
     - godox # we use TODOs intentionally
@@ -38,6 +39,8 @@ linters:
       excludes:
         - G104 # ignoring errors on Close is acceptable
         - G304 # well...
+        - G124 # cookie jar only stores upstream cookies, never sets response cookies
+        - G706 # we use structured slog logging
 
     funcorder:
       alphabetical: false

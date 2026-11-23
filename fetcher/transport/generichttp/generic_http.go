@@ -20,7 +20,6 @@ func New(verifyNetworks bool, config *Config) (*http.Transport, error) {
 	dialer := &net.Dialer{
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
-		DualStack: true,
 	}
 
 	if verifyNetworks {

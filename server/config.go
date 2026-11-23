@@ -10,6 +10,8 @@ import (
 	"github.com/imgproxy/imgproxy/v3/server/responsewriter"
 )
 
+const defaultNetwork = "tcp"
+
 var (
 	// networks defines allowed network types
 	networks = map[string]string{
@@ -64,7 +66,7 @@ type Config struct {
 // NewDefaultConfig returns default config values
 func NewDefaultConfig() Config {
 	return Config{
-		Network:               "tcp",
+		Network:               defaultNetwork,
 		Bind:                  ":8080",
 		PathPrefix:            "",
 		MaxClients:            2048,
